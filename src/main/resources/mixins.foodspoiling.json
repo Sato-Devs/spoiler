@@ -1,0 +1,13 @@
+{
+  "required": true,
+  "minVersion": "0.8",
+  "package": "com.thepigcat.foodspoiling.mixins",
+  "compatibilityLevel": "JAVA_8",
+  "refmap": "mixins.foodspoiling.refmap.json",
+  "mixins": [
+    "ItemStackMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}
