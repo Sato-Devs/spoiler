@@ -7,7 +7,8 @@ import com.thepigcat.foodspoiling.api.FoodQuality;
 import com.thepigcat.foodspoiling.utils.FoodSpoilingUtils;
 import it.unimi.dsi.fastutil.objects.Object2ObjectMap;
 import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
-import it.unimi.dsi.fastutil.objects.ObjectArraySet;
+import it.unimi.dsi.fastutil.objects.ObjectOpenHashSet;
+import it.unimi.dsi.fastutil.objects.ObjectSet;
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
@@ -32,13 +33,17 @@ import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.items.IItemHandler;
 import net.minecraftforge.registries.ForgeRegistries;
 
+import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 
 @Mod.EventBusSubscriber(modid = FoodSpoiling.MODID)
 public final class FSEvents {
-    public static final Set<BlockPos> STORAGE_BLOCK_ENTITIES = new ObjectArraySet<>();
-    private static final Object2ObjectMap<BlockPos, String> CONTAINER_TYPES = new Object2ObjectOpenHashMap<>();
+    // Use ConcurrentHashMap for thread safety
+    private static final Map<BlockPos, String> STORAGE_BLOCK_ENTITIES = new ConcurrentHashMap<>();
+    private static final Map<BlockPos, String> CONTAINER_TYPES = new ConcurrentHashMap<>();
     private static int tickCounter = 0;
 
     // Use Capability Token for correct 1.20.1 Forge implementation
@@ -60,8 +65,13 @@ public final class FSEvents {
     }
 
     private static void processFoodSpoilage(Level level, long gameTime) {
+        // Create a safe copy to iterate over
+        Set<Map.Entry<BlockPos, String>> entitiesToProcess = Collections.newSetFromMap(new ConcurrentHashMap<>());
+        entitiesToProcess.addAll(STORAGE_BLOCK_ENTITIES.entrySet());
+
         // Process block entities
-        for (BlockPos pos : STORAGE_BLOCK_ENTITIES) {
+        for (Map.Entry<BlockPos, String> entry : entitiesToProcess) {
+            BlockPos pos = entry.getKey();
             if (level.isLoaded(pos)) {
                 BlockEntity blockEntity = level.getBlockEntity(pos);
                 if (blockEntity != null && !blockEntity.isRemoved()) {
@@ -72,6 +82,10 @@ public final class FSEvents {
                     if (spoilageModifier <= 0) continue;
 
                     processItemsInBlockEntity(blockEntity, gameTime, spoilageModifier);
+                } else {
+                    // Clean up if block entity no longer exists
+                    STORAGE_BLOCK_ENTITIES.remove(pos);
+                    CONTAINER_TYPES.remove(pos);
                 }
             }
         }
@@ -86,12 +100,26 @@ public final class FSEvents {
                 if (!stack.isEmpty() && stack.is(FSTags.FOOD)) {
                     // Initialize food state if not present
                     if (!FoodSpoilingUtils.hasFoodState(stack)) {
-                        FoodSpoilingUtils.initializeFoodState(stack, gameTime);
+                        ItemStack extracted = handler.extractItem(i, stack.getCount(), true);
+                        if (!extracted.isEmpty()) {
+                            FoodSpoilingUtils.initializeFoodState(extracted, gameTime);
+                            ItemStack simulated = handler.extractItem(i, extracted.getCount(), true);
+                            if (!simulated.isEmpty() && ItemStack.isSameItemSameTags(simulated, stack)) {
+                                ItemStack actualExtracted = handler.extractItem(i, extracted.getCount(), false);
+                                handler.insertItem(i, extracted, false);
+                            }
+                        }
                     } else {
-                        // Update existing food state
-                        ItemStack extracted = handler.extractItem(i, stack.getCount(), false);
-                        FoodSpoilingUtils.updateFoodState(extracted, gameTime, spoilageModifier);
-                        handler.insertItem(i, extracted, false);
+                        // Update existing food state - first simulate extraction
+                        ItemStack extracted = handler.extractItem(i, stack.getCount(), true);
+                        if (!extracted.isEmpty()) {
+                            FoodSpoilingUtils.updateFoodState(extracted, gameTime, spoilageModifier);
+                            // Only if simulation worked and tags changed, perform actual extraction/insertion
+                            if (!ItemStack.isSameItemSameTags(extracted, stack)) {
+                                ItemStack actualExtracted = handler.extractItem(i, stack.getCount(), false);
+                                handler.insertItem(i, extracted, false);
+                            }
+                        }
                     }
                 }
             }
@@ -102,7 +130,7 @@ public final class FSEvents {
     public static void onChunkLoad(ChunkEvent.Load event) {
         if (event.getLevel().isClientSide()) return;
 
-        // When a chunk loads, scan for block entities using the BlockPos set
+        // When a chunk loads, scan for block entities with item capabilities
         if (event.getChunk() instanceof LevelChunk levelChunk) {
             // Get all block entity positions in the chunk
             Set<BlockPos> blockEntityPositions = levelChunk.getBlockEntitiesPos();
@@ -110,11 +138,15 @@ public final class FSEvents {
             for (BlockPos pos : blockEntityPositions) {
                 BlockEntity blockEntity = levelChunk.getBlockEntity(pos);
                 if (blockEntity != null) {
-                    ResourceLocation id = ForgeRegistries.BLOCK_ENTITY_TYPES.getKey(blockEntity.getType());
-                    if (id != null) {
-                        String containerId = id.toString();
-                        CONTAINER_TYPES.put(pos, containerId);
-                        STORAGE_BLOCK_ENTITIES.add(pos);
+                    // Check if this block entity has item capability
+                    LazyOptional<IItemHandler> cap = blockEntity.getCapability(ITEM_HANDLER_CAPABILITY);
+                    if (cap.isPresent()) {
+                        ResourceLocation id = ForgeRegistries.BLOCK_ENTITY_TYPES.getKey(blockEntity.getType());
+                        if (id != null) {
+                            String containerId = id.toString();
+                            CONTAINER_TYPES.put(pos, containerId);
+                            STORAGE_BLOCK_ENTITIES.put(pos, containerId);
+                        }
                     }
                 }
             }
@@ -125,31 +157,29 @@ public final class FSEvents {
     public static void onChunkUnload(ChunkEvent.Unload event) {
         if (event.getLevel().isClientSide()) return;
 
-        // When a chunk unloads, handle block entities in the chunk
+        // When a chunk unloads, pause spoilage for items in the chunk
         if (event.getChunk() instanceof LevelChunk levelChunk) {
             Level level = (Level) event.getLevel();
             long gameTime = level.getGameTime();
 
             // Get all block entity positions in the chunk
-            Set<BlockPos> blockEntityPositions = levelChunk.getBlockEntitiesPos();
-
-            for (BlockPos pos : blockEntityPositions) {
+            for (BlockPos pos : levelChunk.getBlockEntitiesPos()) {
                 BlockEntity blockEntity = levelChunk.getBlockEntity(pos);
                 if (blockEntity != null) {
                     LazyOptional<IItemHandler> cap = blockEntity.getCapability(ITEM_HANDLER_CAPABILITY);
                     cap.ifPresent(handler -> {
                         for (int i = 0; i < handler.getSlots(); i++) {
                             ItemStack stack = handler.getStackInSlot(i);
-                            if (!stack.isEmpty() && stack.is(FSTags.FOOD)) {
-                                ItemStack extracted = handler.extractItem(i, stack.getCount(), false);
-                                FoodSpoilingUtils.pauseSpoilage(extracted, gameTime);
-                                handler.insertItem(i, extracted, false);
+                            if (!stack.isEmpty() && stack.is(FSTags.FOOD) &&
+                                    FoodSpoilingUtils.hasFoodState(stack)) {
+                                // Don't modify the inventory directly here, just pause the spoilage
+                                FoodSpoilingUtils.pauseSpoilage(stack, gameTime);
                             }
                         }
                     });
                 }
 
-                // Remove from tracking sets
+                // Remove from tracking maps without modifying during iteration
                 STORAGE_BLOCK_ENTITIES.remove(pos);
                 CONTAINER_TYPES.remove(pos);
             }
@@ -190,10 +220,10 @@ public final class FSEvents {
 
             // Add remaining time if configured
             if (FoodSpoilingConfig.showRemainingDays || FoodSpoilingConfig.showRemainingPercentage) {
-                CompoundTag tag = stack.getTagElement("FoodState");
-                if (tag != null) {
-                    String foodClass = stack.getOrCreateTag().getString("FoodClass");
-                    if (!foodClass.isEmpty() && FoodSpoilingConfig.stateProgressions.containsKey(foodClass)) {
+                CompoundTag nbt = stack.getTag();
+                if (nbt != null && nbt.getString("FoodClass") != null && !nbt.getString("FoodClass").isEmpty()) {
+                    String foodClass = nbt.getString("FoodClass");
+                    if (FoodSpoilingConfig.stateProgressions.containsKey(foodClass)) {
                         addTimeTooltip(event, state, foodClass);
                     }
                 }
@@ -228,6 +258,7 @@ public final class FSEvents {
 
             if (FoodSpoilingConfig.showRemainingPercentage) {
                 int percentage = (int) ((1 - (daysInState % currentStateDuration) / currentStateDuration) * 100);
+                percentage = Math.max(0, Math.min(100, percentage)); // Ensure it's between 0-100
                 event.getToolTip().add(Component.translatable("tooltip.foodspoiling.freshness", percentage)
                         .withStyle(ChatFormatting.GRAY));
             }
@@ -250,6 +281,28 @@ public final class FSEvents {
             case "flat": return ChatFormatting.GRAY;
             case "rotten": return ChatFormatting.DARK_PURPLE;
             default: return ChatFormatting.WHITE;
+        }
+    }
+
+    /**
+     * Registers a block entity position for food spoilage tracking
+     * Called by the LevelChunkMixin
+     */
+    public static void registerBlockEntity(BlockPos pos, String containerId) {
+        if (pos != null && containerId != null) {
+            CONTAINER_TYPES.put(pos, containerId);
+            STORAGE_BLOCK_ENTITIES.put(pos, containerId);
+        }
+    }
+
+    /**
+     * Unregisters a block entity position from food spoilage tracking
+     * Called by the LevelChunkMixin
+     */
+    public static void unregisterBlockEntity(BlockPos pos) {
+        if (pos != null) {
+            STORAGE_BLOCK_ENTITIES.remove(pos);
+            CONTAINER_TYPES.remove(pos);
         }
     }
 }

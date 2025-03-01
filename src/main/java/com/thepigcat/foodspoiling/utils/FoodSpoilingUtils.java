@@ -16,12 +16,14 @@ import javax.annotation.Nullable;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 
 public class FoodSpoilingUtils {
     private static final String STATE_TAG = "FoodState";
     private static final String CREATION_TIME_TAG = "CreationTime";
     private static final String REMAINING_LIFETIME_TAG = "RemainingLifetime";
     private static final String FOOD_CLASS_TAG = "FoodClass";
+    private static final String STACK_ID_TAG = "StackId";
 
     /**
      * Gets the current food state from an item stack
@@ -30,8 +32,8 @@ public class FoodSpoilingUtils {
     public static FoodQuality getFoodState(ItemStack stack) {
         if (stack.isEmpty()) return null;
 
-        CompoundTag nbt = stack.getOrCreateTag();
-        if (nbt.contains(STATE_TAG)) {
+        CompoundTag nbt = stack.getTag();
+        if (nbt != null && nbt.contains(STATE_TAG)) {
             CompoundTag stateTag = nbt.getCompound(STATE_TAG);
             return new FoodQuality(
                     stateTag.getString("name"),
@@ -65,9 +67,13 @@ public class FoodSpoilingUtils {
         String foodClass = determineFoodClass(stack.getItem());
         if (foodClass == null) return; // Not a tracked food item
 
+        // Generate a unique ID for the stack that will be the same for identical items
+        String stackId = generateStackId(stack, worldTime);
+
         CompoundTag nbt = stack.getOrCreateTag();
         nbt.putLong(CREATION_TIME_TAG, worldTime);
         nbt.putString(FOOD_CLASS_TAG, foodClass);
+        nbt.putString(STACK_ID_TAG, stackId);
 
         List<List<Object>> stateProgression = FoodSpoilingConfig.stateProgressions.get(foodClass);
         if (stateProgression != null && !stateProgression.isEmpty()) {
@@ -78,13 +84,25 @@ public class FoodSpoilingUtils {
     }
 
     /**
+     * Generate a consistent ID for similar items created at the same world time
+     */
+    private static String generateStackId(ItemStack stack, long worldTime) {
+        // Round world time to nearest hour to allow stacking of items created close together
+        long roundedTime = (worldTime / (FoodSpoilingConfig.dayLength / 24)) * (FoodSpoilingConfig.dayLength / 24);
+        String itemName = ForgeRegistries.ITEMS.getKey(stack.getItem()).toString();
+
+        // Items created at the same "hour" of game time will have the same ID
+        return itemName + "_" + roundedTime;
+    }
+
+    /**
      * Updates the food state based on the current world time
      */
     public static void updateFoodState(ItemStack stack, long worldTime, double spoilageModifier) {
         if (stack.isEmpty() || !hasFoodState(stack)) return;
 
-        CompoundTag nbt = stack.getOrCreateTag();
-        if (!nbt.contains(CREATION_TIME_TAG) || !nbt.contains(FOOD_CLASS_TAG)) return;
+        CompoundTag nbt = stack.getTag();
+        if (nbt == null || !nbt.contains(CREATION_TIME_TAG) || !nbt.contains(FOOD_CLASS_TAG)) return;
 
         long creationTime = nbt.getLong(CREATION_TIME_TAG);
         String foodClass = nbt.getString(FOOD_CLASS_TAG);
@@ -151,8 +169,8 @@ public class FoodSpoilingUtils {
     public static void pauseSpoilage(ItemStack stack, long worldTime) {
         if (stack.isEmpty() || !hasFoodState(stack)) return;
 
-        CompoundTag nbt = stack.getOrCreateTag();
-        if (!nbt.contains(CREATION_TIME_TAG)) return;
+        CompoundTag nbt = stack.getTag();
+        if (nbt == null || !nbt.contains(CREATION_TIME_TAG)) return;
 
         long creationTime = nbt.getLong(CREATION_TIME_TAG);
         long elapsedTime = worldTime - creationTime;
@@ -167,8 +185,8 @@ public class FoodSpoilingUtils {
     public static void resumeSpoilage(ItemStack stack, long worldTime) {
         if (stack.isEmpty() || !hasFoodState(stack)) return;
 
-        CompoundTag nbt = stack.getOrCreateTag();
-        if (!nbt.contains(REMAINING_LIFETIME_TAG)) return;
+        CompoundTag nbt = stack.getTag();
+        if (nbt == null || !nbt.contains(REMAINING_LIFETIME_TAG)) return;
 
         long remainingLifetime = nbt.getLong(REMAINING_LIFETIME_TAG);
         long newCreationTime = worldTime - remainingLifetime;
