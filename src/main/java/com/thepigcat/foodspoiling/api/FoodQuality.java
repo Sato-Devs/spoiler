@@ -32,5 +32,14 @@ public record FoodQuality(String name, int day, int color) {
             this.day = day;
             return this;
         }
+
+        public Builder color(int color) {
+            this.color = color;
+            return this;
+        }
+
+        public FoodQuality build() {
+            return new FoodQuality(name, day, color);
+        }
     }
 }

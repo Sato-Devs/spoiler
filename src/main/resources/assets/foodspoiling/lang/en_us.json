@@ -1,0 +1,19 @@
+{
+  "tooltip.foodspoiling.state": "State: %s",
+  "tooltip.foodspoiling.days_remaining": "Remaining: %s days",
+  "tooltip.foodspoiling.freshness": "Freshness: %d%%",
+
+  "state.foodspoiling.fresh": "Fresh",
+  "state.foodspoiling.stale": "Stale",
+  "state.foodspoiling.weak": "Weak",
+  "state.foodspoiling.dead": "Dead",
+  "state.foodspoiling.rotten": "Rotten",
+  "state.foodspoiling.bruised": "Bruised",
+  "state.foodspoiling.mushy": "Mushy",
+  "state.foodspoiling.moldy": "Moldy",
+  "state.foodspoiling.spoiled": "Spoiled",
+  "state.foodspoiling.aged": "Aged",
+  "state.foodspoiling.sour": "Sour",
+  "state.foodspoiling.rancid": "Rancid",
+  "state.foodspoiling.flat": "Flat"
+}

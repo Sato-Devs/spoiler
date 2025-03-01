@@ -8,6 +8,7 @@ import net.minecraftforge.eventbus.api.IEventBus;
 import net.minecraftforge.fml.ModLoadingContext;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.config.ModConfig;
+import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
 import net.minecraftforge.registries.DataPackRegistryEvent;
 import org.slf4j.Logger;
 
@@ -15,16 +16,16 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-// The value here should match an entry in the META-INF/mods.toml file
 @Mod(FoodSpoiling.MODID)
 public final class FoodSpoiling {
     public static final Map<Item, List<ItemStack>> FOOD_ITEMS = new HashMap<>();
     public static final String MODID = "foodspoiling";
     public static final Logger LOGGER = LogUtils.getLogger();
 
-    public FoodSpoiling(IEventBus modEventbus) {
-        modEventbus.addListener(this::registerDatapackRegistry);
-        ModLoadingContext.get().registerConfig(ModConfig.Type.COMMON, FSConfig.SPEC);
+    public FoodSpoiling() {
+        IEventBus modEventBus = FMLJavaModLoadingContext.get().getModEventBus();;
+        modEventBus.addListener(this::registerDatapackRegistry);
+        ModLoadingContext.get().registerConfig(ModConfig.Type.COMMON, FoodSpoilingConfig.SPEC);
     }
 
     private void registerDatapackRegistry(DataPackRegistryEvent.NewRegistry event) {
