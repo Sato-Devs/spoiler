@@ -15,7 +15,7 @@ import java.util.Map;
 public final class FSFoodStages {
     private static final Map<ResourceKey<FoodStages>, FoodStages> SHOP_ENTRIES = new HashMap<>();
 
-    public static final ResourceKey<FoodStages> RAW_MEATS = register("raw_meats", new FoodStages(FSTags.SPOILABLE_FOODS, List.of(
+    public static final ResourceKey<FoodStages> RAW_MEATS = register("raw_meats", new FoodStages(FSTags.RAW_MEATS, List.of(
             new FoodStage(FSFoodQualities.FRESH, 10),
             new FoodStage(FSFoodQualities.SPOILED, 20),
             new FoodStage(FSFoodQualities.STALE, 30)

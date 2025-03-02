@@ -12,8 +12,8 @@ import net.minecraftforge.common.data.DatapackBuiltinEntriesProvider;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 
-public class DatapackRegistryProvider extends DatapackBuiltinEntriesProvider {
-    public DatapackRegistryProvider(PackOutput output, CompletableFuture<HolderLookup.Provider> registries) {
+public class FSDatapackRegistryProvider extends DatapackBuiltinEntriesProvider {
+    public FSDatapackRegistryProvider(PackOutput output, CompletableFuture<HolderLookup.Provider> registries) {
         super(output, registries, BUILDER, Set.of(FoodSpoiling.MODID));
     }
 

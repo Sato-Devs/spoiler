@@ -10,6 +10,7 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntity;
@@ -20,7 +21,10 @@ import net.minecraftforge.common.capabilities.CapabilityToken;
 import net.minecraftforge.common.capabilities.ForgeCapabilities;
 import net.minecraftforge.common.util.LazyOptional;
 import net.minecraftforge.event.TickEvent;
+import net.minecraftforge.event.entity.player.ItemFishedEvent;
 import net.minecraftforge.event.entity.player.ItemTooltipEvent;
+import net.minecraftforge.event.entity.player.PlayerEvent;
+import net.minecraftforge.event.entity.player.TradeWithVillagerEvent;
 import net.minecraftforge.event.level.ChunkEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
@@ -34,9 +38,39 @@ public final class FSEvents {
     private static final Set<BlockPos> TICKING_BLOCK_ENTITIES = new ObjectArraySet<>();
     private static int tickCounter = 0;
 
-    // Use Capability Token for correct 1.20.1 Forge implementation
-    private static final Capability<IItemHandler> ITEM_HANDLER_CAPABILITY = CapabilityManager.get(new CapabilityToken<>() {
-    });
+    @SubscribeEvent
+    public static void onItemPickup(PlayerEvent.ItemPickupEvent event) {
+        initFoodItem(event.getEntity(), event.getStack());
+    }
+
+    @SubscribeEvent
+    public static void onCrafted(PlayerEvent.ItemCraftedEvent event) {
+        initFoodItem(event.getEntity(), event.getCrafting());
+    }
+
+    @SubscribeEvent
+    public static void onSmelted(PlayerEvent.ItemSmeltedEvent event) {
+        initFoodItem(event.getEntity(), event.getSmelting());
+    }
+
+    @SubscribeEvent
+    public static void onFished(ItemFishedEvent event) {
+        for (ItemStack drop : event.getDrops()) {
+            initFoodItem(event.getEntity(), drop);
+        }
+    }
+
+    @SubscribeEvent
+    public static void onTraded(TradeWithVillagerEvent event) {
+        initFoodItem(event.getEntity(), event.getMerchantOffer().assemble());
+    }
+
+    private static void initFoodItem(Player player, ItemStack stack) {
+        if (!SpoilingUtils.hasFoodData(stack) && !stack.is(FSTags.UNSPOILABLE_FOODS) && stack.isEdible()) {
+            Level level = player.level();
+            SpoilingUtils.initialize(stack, level.dayTime(), level.registryAccess());
+        }
+    }
 
     @SubscribeEvent
     public static void onLevelTick(TickEvent.LevelTickEvent event) {
@@ -75,7 +109,7 @@ public final class FSEvents {
         // Process items using capability
         for (int i = 0; i < itemHandler.getSlots(); i++) {
             ItemStack stack = itemHandler.getStackInSlot(i);
-            if (!stack.isEmpty() && stack.is(FSTags.SPOILABLE_FOODS)) {
+            if (!stack.isEmpty() && stack.isEdible() && !stack.is(FSTags.UNSPOILABLE_FOODS)) {
                 if (SpoilingUtils.hasFoodData(stack)) {
                     // TODO: Do shit regarding actual state
                 } else {
@@ -132,10 +166,10 @@ public final class FSEvents {
     @SubscribeEvent
     public static void onItemTooltip(ItemTooltipEvent event) {
         ItemStack stack = event.getItemStack();
-        if (!stack.is(FSTags.SPOILABLE_FOODS) || !FoodSpoilingConfig.showFoodTooltip) return;
+        if (stack.is(FSTags.UNSPOILABLE_FOODS) || !FoodSpoilingConfig.showFoodTooltip) return;
 
         if (SpoilingUtils.hasFoodData(stack) && event.getEntity().level().isClientSide) {
-            event.getToolTip().addAll(SpoilingUtils.getSpoilingTooltip(stack, event.getEntity().level(), ClientUtils.hasShiftDown()));
+            event.getToolTip().addAll(SpoilingUtils.getSpoilingTooltip(stack, event.getEntity(), ClientUtils.hasShiftDown()));
         }
 
     }

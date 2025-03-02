@@ -6,6 +6,6 @@
       "probability": 0.75
     }
   ],
-  "nutrition": 0,
-  "saturation": 10.0
+  "nutrition_mod": 0.0,
+  "saturation_mod": 10.0
 }

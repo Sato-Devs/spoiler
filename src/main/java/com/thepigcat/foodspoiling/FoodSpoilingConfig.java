@@ -112,7 +112,7 @@ public final class FoodSpoilingConfig {
         BUILDER.comment("Food States Configuration").push("foodStates");
 
         // State definitions
-        BUILDER.comment("State affects (saturation multiplier, hunger multiplier, effect list)").push("stateEffects");
+        BUILDER.comment("State affects (saturationMod multiplier, hunger multiplier, effect list)").push("stateEffects");
 
         defineState("fresh", List.of(1.0, 1.0, List.of()));
         defineState("stale", List.of(0.9, 0.9, List.of()));

@@ -13,7 +13,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-public record FoodQuality(int color, float saturation, int nutrition, List<Pair<Either<MobEffectInstance, Potion>, Float>> effects) {
+public record FoodQuality(int color, float saturationMod, float nutritionMod, List<Pair<Either<MobEffectInstance, Potion>, Float>> effects) {
     public static final FoodQuality EMPTY = new FoodQuality(-1, 0, 0, Collections.emptyList());
     private static final Codec<Pair<Either<MobEffectInstance, Potion>, Float>> EFFECT_CODEC = RecordCodecBuilder.create(inst -> inst.group(
             Codec.either(CodecUtils.MOB_EFFECT_INSTANCE_CODEC, CodecUtils.registryCodec(BuiltInRegistries.POTION)).fieldOf("effect").forGetter(Pair::getFirst),
@@ -21,8 +21,8 @@ public record FoodQuality(int color, float saturation, int nutrition, List<Pair<
     ).apply(inst, Pair::of));
     public static final Codec<FoodQuality> CODEC = RecordCodecBuilder.create(inst -> inst.group(
             Codec.INT.fieldOf("color").forGetter(FoodQuality::color),
-            Codec.FLOAT.fieldOf("saturation").forGetter(FoodQuality::saturation),
-            Codec.INT.fieldOf("nutrition").forGetter(FoodQuality::nutrition),
+            Codec.FLOAT.fieldOf("saturation_mod").forGetter(FoodQuality::saturationMod),
+            Codec.FLOAT.fieldOf("nutrition_mod").forGetter(FoodQuality::nutritionMod),
             EFFECT_CODEC.listOf().fieldOf("effects").forGetter(FoodQuality::effects)
     ).apply(inst, FoodQuality::new));
 
@@ -34,7 +34,7 @@ public record FoodQuality(int color, float saturation, int nutrition, List<Pair<
         private int color;
         private float saturation;
         private int nutrition;
-        private List<Pair<Either<MobEffectInstance, Potion>, Float>> effects = new ArrayList<>();
+        private final List<Pair<Either<MobEffectInstance, Potion>, Float>> effects = new ArrayList<>();
 
         private Builder() {
         }

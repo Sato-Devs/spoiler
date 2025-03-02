@@ -3,6 +3,7 @@ package com.thepigcat.foodspoiling;
 import com.mojang.logging.LogUtils;
 import com.thepigcat.foodspoiling.api.FoodQuality;
 import com.thepigcat.foodspoiling.api.FoodStages;
+import com.thepigcat.foodspoiling.registries.FSItems;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.*;
 import net.minecraftforge.eventbus.api.IEventBus;
@@ -26,6 +27,8 @@ public final class FoodSpoiling {
     public FoodSpoiling() {
         IEventBus modEventbus = FMLJavaModLoadingContext.get().getModEventBus();
         modEventbus.addListener(this::registerDatapackRegistry);
+
+        FSItems.ITEMS.register(modEventbus);
 
         ModLoadingContext.get().registerConfig(ModConfig.Type.COMMON, FoodSpoilingConfig.SPEC);
     }

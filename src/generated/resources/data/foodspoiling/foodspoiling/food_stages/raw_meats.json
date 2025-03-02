@@ -1,5 +1,5 @@
 {
-  "items": "foodspoiling:spoilable_foods",
+  "items": "foodspoiling:raw_meats",
   "stages": [
     {
       "days": 10,

@@ -7,8 +7,8 @@ import net.minecraft.data.PackOutput;
 import net.minecraft.resources.ResourceKey;
 import net.minecraftforge.common.data.LanguageProvider;
 
-public class EnUSLangProvider extends LanguageProvider {
-    public EnUSLangProvider(PackOutput output) {
+public class FSEnUSLangProvider extends LanguageProvider {
+    public FSEnUSLangProvider(PackOutput output) {
         super(output, FoodSpoiling.MODID, "en_us");
     }
 

@@ -11,7 +11,8 @@ public final class DataGatherer {
     @SubscribeEvent
     public static void onGatherData(GatherDataEvent event) {
         DataGenerator generator = event.getGenerator();
-        generator.addProvider(event.includeServer(), new DatapackRegistryProvider(generator.getPackOutput(), event.getLookupProvider()));
-        generator.addProvider(event.includeClient(), new EnUSLangProvider(generator.getPackOutput()));
+        generator.addProvider(event.includeServer(), new FSDatapackRegistryProvider(generator.getPackOutput(), event.getLookupProvider()));
+        generator.addProvider(event.includeClient(), new FSEnUSLangProvider(generator.getPackOutput()));
+        generator.addProvider(event.includeClient(), new FSItemModelProvider(generator.getPackOutput(), event.getExistingFileHelper()));
     }
 }
