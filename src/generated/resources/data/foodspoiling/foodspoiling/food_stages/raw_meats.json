@@ -1,0 +1,17 @@
+{
+  "items": "foodspoiling:spoilable_foods",
+  "stages": [
+    {
+      "days": 10,
+      "quality": "foodspoiling:fresh"
+    },
+    {
+      "days": 20,
+      "quality": "foodspoiling:spoiled"
+    },
+    {
+      "days": 30,
+      "quality": "foodspoiling:stale"
+    }
+  ]
+}

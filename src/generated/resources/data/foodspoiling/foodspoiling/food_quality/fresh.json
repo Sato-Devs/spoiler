@@ -1,0 +1,11 @@
+{
+  "color": -7938737,
+  "effects": [
+    {
+      "effect": "minecraft:healing",
+      "probability": 0.75
+    }
+  ],
+  "nutrition": 0,
+  "saturation": 10.0
+}

@@ -1,0 +1,7 @@
+{
+  "food_quality.foodspoiling.aged": "Aged",
+  "food_quality.foodspoiling.fresh": "Fresh",
+  "food_quality.foodspoiling.moldy": "Moldy",
+  "food_quality.foodspoiling.spoiled": "Spoiled",
+  "food_quality.foodspoiling.stale": "Stale"
+}
