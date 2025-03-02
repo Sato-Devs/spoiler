@@ -3,6 +3,7 @@ package com.thepigcat.foodspoiling.events;
 import com.thepigcat.foodspoiling.FoodSpoiling;
 import com.thepigcat.foodspoiling.FoodSpoilingConfig;
 import com.thepigcat.foodspoiling.FSTags;
+import com.thepigcat.foodspoiling.utils.ClientUtils;
 import com.thepigcat.foodspoiling.utils.SpoilingUtils;
 import it.unimi.dsi.fastutil.objects.ObjectArraySet;
 import net.minecraft.core.BlockPos;
@@ -133,8 +134,8 @@ public final class FSEvents {
         ItemStack stack = event.getItemStack();
         if (!stack.is(FSTags.SPOILABLE_FOODS) || !FoodSpoilingConfig.showFoodTooltip) return;
 
-        if (SpoilingUtils.hasFoodData(stack)) {
-            event.getToolTip().addAll(SpoilingUtils.getSpoilingTooltip(stack, event.getEntity().level()));
+        if (SpoilingUtils.hasFoodData(stack) && event.getEntity().level().isClientSide) {
+            event.getToolTip().addAll(SpoilingUtils.getSpoilingTooltip(stack, event.getEntity().level(), ClientUtils.hasShiftDown()));
         }
 
     }
