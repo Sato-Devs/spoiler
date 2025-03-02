@@ -8,10 +8,7 @@ import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.event.config.ModConfigEvent;
 import net.minecraftforge.registries.ForgeRegistries;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Mod.EventBusSubscriber(modid = FoodSpoiling.MODID, bus = Mod.EventBusSubscriber.Bus.MOD)
@@ -68,7 +65,7 @@ public class FoodSpoilingConfig {
     // Container modifiers
     private static final ForgeConfigSpec.ConfigValue<List<? extends String>> FREEZING_CONTAINERS = BUILDER
             .comment("List of containers that freeze items inside, halting spoilage")
-            .defineList("containers.freezing", List.of("minecraft:chest", "minecraft:barrel"), FoodSpoilingConfig::validateContainerName);
+            .defineList("containers.freezing", List.of("minecraft:barrel"), FoodSpoilingConfig::validateContainerName);
 
     private static final ForgeConfigSpec.ConfigValue<List<? extends String>> PRESERVING_CONTAINERS = BUILDER
             .comment("List of containers that slow down spoilage")
@@ -308,9 +305,9 @@ public class FoodSpoilingConfig {
     public static boolean showFoodTooltip;
     public static boolean showRemainingDays;
     public static boolean showRemainingPercentage;
-    public static Set<String> freezingContainers;
-    public static Set<String> preservingContainers;
-    public static Map<String, Double> containerModifiers;
+    public static Set<ResourceLocation> freezingContainers;
+    public static Set<ResourceLocation> preservingContainers;
+    public static Map<ResourceLocation, Double> containerModifiers;
     public static Map<String, Set<Item>> foodClasses = new HashMap<>();
     public static Map<String, List<Double>> stateEffects = new HashMap<>();
     public static Map<String, List<List<Object>>> stateProgressions = new HashMap<>();
@@ -366,9 +363,11 @@ public class FoodSpoilingConfig {
         showRemainingPercentage = SHOW_REMAINING_PERCENTAGE.get();
 
         // Load container settings
-        freezingContainers = FREEZING_CONTAINERS.get().stream().collect(Collectors.toSet());
-        preservingContainers = PRESERVING_CONTAINERS.get().stream().collect(Collectors.toSet());
-        containerModifiers = new HashMap<>(CONTAINER_MODIFIERS.get());
+        freezingContainers = FREEZING_CONTAINERS.get().stream().map(ResourceLocation::new).collect(Collectors.toSet());
+        preservingContainers = PRESERVING_CONTAINERS.get().stream().map(ResourceLocation::new).collect(Collectors.toSet());
+        containerModifiers = CONTAINER_MODIFIERS.get().entrySet().stream()
+                .map(e -> new AbstractMap.SimpleEntry<>(new ResourceLocation(e.getKey()), e.getValue()))
+                .collect(Collectors.toMap(AbstractMap.SimpleEntry::getKey, AbstractMap.SimpleEntry::getValue));
 
         // Load food classes
         foodClasses.clear();

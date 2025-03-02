@@ -2,6 +2,7 @@ package com.thepigcat.foodspoiling;
 
 import com.mojang.logging.LogUtils;
 import com.thepigcat.foodspoiling.api.FoodQuality;
+import com.thepigcat.foodspoiling.api.FoodStages;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.*;
 import net.minecraftforge.eventbus.api.IEventBus;
@@ -16,20 +17,22 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+// The value here should match an entry in the META-INF/mods.toml file
 @Mod(FoodSpoiling.MODID)
 public final class FoodSpoiling {
-    public static final Map<Item, List<ItemStack>> FOOD_ITEMS = new HashMap<>();
     public static final String MODID = "foodspoiling";
     public static final Logger LOGGER = LogUtils.getLogger();
 
     public FoodSpoiling() {
-        IEventBus modEventBus = FMLJavaModLoadingContext.get().getModEventBus();;
-        modEventBus.addListener(this::registerDatapackRegistry);
+        IEventBus modEventbus = FMLJavaModLoadingContext.get().getModEventBus();
+        modEventbus.addListener(this::registerDatapackRegistry);
+
         ModLoadingContext.get().registerConfig(ModConfig.Type.COMMON, FoodSpoilingConfig.SPEC);
     }
 
     private void registerDatapackRegistry(DataPackRegistryEvent.NewRegistry event) {
         event.dataPackRegistry(FSRegistries.FOOD_QUALITY_KEY, FoodQuality.CODEC, FoodQuality.CODEC);
+        event.dataPackRegistry(FSRegistries.FOOD_STAGES_KEY, FoodStages.CODEC, FoodStages.CODEC);
     }
 
     public static ResourceLocation rl(String path) {

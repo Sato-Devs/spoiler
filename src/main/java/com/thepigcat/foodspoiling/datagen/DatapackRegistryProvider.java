@@ -2,12 +2,11 @@ package com.thepigcat.foodspoiling.datagen;
 
 import com.thepigcat.foodspoiling.FSRegistries;
 import com.thepigcat.foodspoiling.FoodSpoiling;
-import com.thepigcat.foodspoiling.api.FoodQuality;
-import com.thepigcat.foodspoiling.registries.FoodQualities;
+import com.thepigcat.foodspoiling.registries.FSFoodStages;
+import com.thepigcat.foodspoiling.registries.FSFoodQualities;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.core.RegistrySetBuilder;
 import net.minecraft.data.PackOutput;
-import net.minecraft.data.worldgen.BootstapContext;
 import net.minecraftforge.common.data.DatapackBuiltinEntriesProvider;
 
 import java.util.Set;
@@ -19,5 +18,6 @@ public class DatapackRegistryProvider extends DatapackBuiltinEntriesProvider {
     }
 
     public static final RegistrySetBuilder BUILDER = new RegistrySetBuilder()
-            .add(FSRegistries.FOOD_QUALITY_KEY, FoodQualities::bootstrap);
+            .add(FSRegistries.FOOD_QUALITY_KEY, FSFoodQualities::bootstrap)
+            .add(FSRegistries.FOOD_STAGES_KEY, FSFoodStages::bootstrap);
 }

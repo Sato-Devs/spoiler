@@ -34,18 +34,13 @@ public abstract class LevelChunkMixin extends ChunkAccess {
     @Shadow public abstract BlockEntity getBlockEntity(BlockPos pos);
     @Shadow protected abstract boolean isInLevel();
 
-
-
     @Inject(method = "setBlockEntity", at = @At("RETURN"))
     private void foodspoiling$setBlockEntity(BlockEntity blockEntity, CallbackInfo ci) {
         try {
             if (blockEntity != null && !blockEntity.isRemoved() && isInLevel()) {
                 BlockPos pos = blockEntity.getBlockPos();
-                LazyOptional<IItemHandler> cap = blockEntity.getCapability(ForgeCapabilities.ITEM_HANDLER);
-                if (cap.isPresent() && getBlockState(pos).hasBlockEntity()) {
-                    String containerId = ForgeRegistries.BLOCK_ENTITY_TYPES.getKey(blockEntity.getType()).toString();
-                    // Update block entity in FSEvents through a public method
-                    FSEvents.registerBlockEntity(pos, containerId);
+                if (getBlockState(pos).hasBlockEntity()) {
+                    FSEvents.registerBlockEntity(pos);
                 }
             }
         } catch (Exception e) {
