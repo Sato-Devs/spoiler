@@ -30,7 +30,7 @@ public final class FoodSpoilingConfig {
 
     // Spoiling Section
     private static final ForgeConfigSpec.BooleanValue RENDER_SPOILED_OVERLAY = BUILDER
-            .comment("Applies an increasing color tint on items as they rot")
+            .comment("Applies an increasing textColor tint on items as they rot")
             .define("spoiling.renderSpoiledOverlay", true);
 
     private static final ForgeConfigSpec.BooleanValue RENDER_SPOILED_OVERLAY_FOOD_ONLY = BUILDER

@@ -3,5 +3,7 @@
   "food_quality.foodspoiling.fresh": "Fresh",
   "food_quality.foodspoiling.moldy": "Moldy",
   "food_quality.foodspoiling.spoiled": "Spoiled",
-  "food_quality.foodspoiling.stale": "Stale"
+  "food_quality.foodspoiling.stale": "Stale",
+  "item.foodspoiling.decomposed_goo": "Decomposed Goo",
+  "item.foodspoiling.rotten_mass": "Rotten Mass"
 }

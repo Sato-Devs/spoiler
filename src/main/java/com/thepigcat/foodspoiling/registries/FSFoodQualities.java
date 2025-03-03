@@ -16,24 +16,29 @@ public final class FSFoodQualities {
     private static final Map<ResourceKey<FoodQuality>, FoodQuality.Builder> SHOP_ENTRIES = new HashMap<>();
 
     public static final ResourceKey<FoodQuality> FRESH = register("fresh", builder -> builder
-            .color(FastColor.ARGB32.color(255, 134, 221, 79))
+            .textColor(FastColor.ARGB32.color(255, 134, 221, 79))
+            .tintColor(-1)
             .saturation(10)
             .effects(Potions.HEALING, 0.75f)
     );
     public static final ResourceKey<FoodQuality> SPOILED = register("spoiled", builder -> builder
-            .color(FastColor.ARGB32.color(255, 135, 170, 78))
+            .textColor(FastColor.ARGB32.color(255, 135, 170, 78))
+            .tintColor(FastColor.ARGB32.color(79, 97, 179, 50))
             .saturation(10)
     );
     public static final ResourceKey<FoodQuality> STALE = register("stale", builder -> builder
-            .color(FastColor.ARGB32.color(255, 170, 167, 78))
+            .textColor(FastColor.ARGB32.color(255, 170, 167, 78))
+            .tintColor(FastColor.ARGB32.color(148, 97, 179, 50))
             .saturation(10)
     );
     public static final ResourceKey<FoodQuality> MOLDY = register("moldy", builder -> builder
-            .color(FastColor.ARGB32.color(255, 122, 132, 9))
+            .textColor(FastColor.ARGB32.color(255, 122, 132, 9))
+            .tintColor(FastColor.ARGB32.color(193, 97, 179, 50))
             .saturation(10)
     );
     public static final ResourceKey<FoodQuality> AGED = register("aged", builder -> builder
-            .color(FastColor.ARGB32.color(255, 112, 92, 12))
+            .textColor(FastColor.ARGB32.color(255, 112, 92, 12))
+            .tintColor(FastColor.ARGB32.color(255, 97, 179, 50))
             .saturation(10)
     );
 

@@ -6,6 +6,7 @@ import com.thepigcat.foodspoiling.api.FoodStages;
 import com.thepigcat.foodspoiling.registries.FSItems;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.*;
+import net.minecraftforge.event.BuildCreativeModeTabContentsEvent;
 import net.minecraftforge.eventbus.api.IEventBus;
 import net.minecraftforge.fml.ModLoadingContext;
 import net.minecraftforge.fml.common.Mod;
@@ -27,6 +28,7 @@ public final class FoodSpoiling {
     public FoodSpoiling() {
         IEventBus modEventbus = FMLJavaModLoadingContext.get().getModEventBus();
         modEventbus.addListener(this::registerDatapackRegistry);
+        modEventbus.addListener(this::addItemsToCreativeTab);
 
         FSItems.ITEMS.register(modEventbus);
 
@@ -36,6 +38,13 @@ public final class FoodSpoiling {
     private void registerDatapackRegistry(DataPackRegistryEvent.NewRegistry event) {
         event.dataPackRegistry(FSRegistries.FOOD_QUALITY_KEY, FoodQuality.CODEC, FoodQuality.CODEC);
         event.dataPackRegistry(FSRegistries.FOOD_STAGES_KEY, FoodStages.CODEC, FoodStages.CODEC);
+    }
+
+    private void addItemsToCreativeTab(BuildCreativeModeTabContentsEvent event) {
+        if (event.getTabKey() == CreativeModeTabs.INGREDIENTS) {
+            event.accept(FSItems.DECOMPOSED_GOO);
+            event.accept(FSItems.ROTTEN_MASS);
+        }
     }
 
     public static ResourceLocation rl(String path) {

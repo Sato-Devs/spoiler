@@ -12,6 +12,14 @@
     {
       "days": 30,
       "quality": "foodspoiling:stale"
+    },
+    {
+      "days": 40,
+      "quality": "foodspoiling:moldy"
+    },
+    {
+      "days": 50,
+      "quality": "foodspoiling:aged"
     }
   ]
 }

@@ -8,15 +8,16 @@ import com.thepigcat.foodspoiling.FoodSpoilingConfig;
 import com.thepigcat.foodspoiling.api.FoodQuality;
 import com.thepigcat.foodspoiling.api.FoodStage;
 import com.thepigcat.foodspoiling.api.FoodStages;
+import com.thepigcat.foodspoiling.registries.FSItems;
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.Holder;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.core.Registry;
 import net.minecraft.core.RegistryAccess;
 import net.minecraft.core.registries.BuiltInRegistries;
-import net.minecraft.core.registries.Registries;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.network.chat.Style;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
@@ -70,7 +71,44 @@ public final class SpoilingUtils {
     }
 
     public static boolean hasFoodData(ItemStack stack) {
-        return stack.hasTag() && stack.getTag().contains(FOOD_STATE_KEY);
+        return stack.hasTag()
+                && stack.getTag().contains(FOOD_STATE_KEY)
+                && stack.getTag().getCompound(FOOD_STATE_KEY).contains(FOOD_STAGES_KEY)
+                && stack.getTag().getCompound(FOOD_STATE_KEY).contains(CREATION_TIME_KEY);
+    }
+
+    public static FoodStage getCurStage(ItemStack stack, long dayTime, HolderLookup.Provider lookup) {
+        FoodStages stages = getStages(stack, lookup);
+        long creationTime = getCreationTime(stack);
+        int creationDay = Math.round((creationTime - creationTime % 24000) / 24000f);
+        int curDay = (int) (dayTime / 24000 - creationDay);
+        for (FoodStage stage : stages.stages()) {
+            if (curDay < stage.days()) {
+                return stage;
+            }
+        }
+        return null;
+    }
+
+    public static FoodStages getStages(ItemStack itemStack, HolderLookup.Provider lookup) {
+        if (hasFoodData(itemStack)) {
+            ResourceKey<FoodStages> foodStages = getFoodStages(itemStack);
+            if (foodStages != null) {
+                return lookup.lookupOrThrow(FSRegistries.FOOD_STAGES_KEY).getOrThrow(foodStages).value();
+            }
+        }
+        return null;
+    }
+
+    public static ItemStack createRottenMass(ItemStack foodStack) {
+        ItemStack stack = new ItemStack(FSItems.ROTTEN_MASS.get(), foodStack.getCount());
+        CompoundTag tag = stack.getOrCreateTag();
+        tag.put(FOOD_STATE_KEY, foodStack.getOrCreateTag().get(FOOD_STATE_KEY));
+        return stack;
+    }
+
+    public static ItemStack createDecomposedGoo(ItemStack rottenMassStack) {
+        return new ItemStack(FSItems.DECOMPOSED_GOO.get(), rottenMassStack.getCount());
     }
 
     public static List<Component> getSpoilingTooltip(ItemStack stack, Player player, boolean isShiftDown) {
@@ -78,7 +116,8 @@ public final class SpoilingUtils {
         long creationTime = getCreationTime(stack);
         int creationDay = Math.round((creationTime - creationTime % 24000) / 24000f);
         //long diff = level.dayTime() - creationTime;
-        int curDay = (int) (level.dayTime() / 24000 - creationDay);
+        long dayTime = level.dayTime();
+        int curDay = (int) (dayTime / 24000 - creationDay);
         RegistryAccess access = level.registryAccess();
         ResourceKey<FoodStages> foodStagesType = getFoodStages(stack);
         Holder.Reference<FoodStages> foodStages = access.lookupOrThrow(FSRegistries.FOOD_STAGES_KEY).getOrThrow(foodStagesType);
@@ -86,38 +125,42 @@ public final class SpoilingUtils {
         if (!stages.isEmpty()) {
             ResourceKey<FoodQuality> qualityKey = null;
             FoodStage curStage = null;
+            FoodStage lastStage = null;
             FoodStage nextStage = null;
-            int totalDays = 0;
             boolean foundDays = false;
             int daysToNext = 0;
             for (int i = 0; i < stages.size(); i++) {
                 FoodStage stage = stages.get(i);
-                totalDays += stage.days();
 
                 if (curDay < stage.days() && !foundDays) {
                     curStage = stage;
                     qualityKey = stage.quality();
                     if (i + 1 < stages.size()) {
                         nextStage = stages.get(i + 1);
-                        daysToNext = totalDays - stage.days();
+                        daysToNext = stage.days();
                     }
                     foundDays = true;
                 }
+
+                if (i == stages.size() - 1) {
+                    lastStage = stage;
+                }
             }
+            int totalDays = lastStage.days();
             int expirationDay = creationDay + totalDays;
             long expirationDate = (creationTime + (totalDays * 24000L));
             String expirationDateText = String.format("Day %d - %s", expirationDay, timeToHoursMinutes(level, expirationDate));
             ResourceKey<FoodQuality> key = qualityKey != null ? qualityKey : stages.get(stages.size() - 1).quality();
             Holder.Reference<FoodQuality> quality = access.lookupOrThrow(FSRegistries.FOOD_QUALITY_KEY).getOrThrow(key);
-            float freshness = 1f - (float) (level.dayTime() - creationTime) / totalDays * 24000;
+            float freshness = getFreshness(dayTime, creationTime, totalDays);
             List<Component> tooltip = new ArrayList<>(List.of(
-                    Component.literal("Quality: ").withStyle(ChatFormatting.GRAY).append(registryTranslation(key).copy().withStyle(Style.EMPTY.withColor(quality.value().color()))),
+                    Component.literal("Quality: ").withStyle(ChatFormatting.GRAY).append(registryTranslation(key).copy().withStyle(Style.EMPTY.withColor(quality.value().textColor()))),
                     Component.literal("Freshness: ").withStyle(ChatFormatting.GRAY).append(Math.round(freshness * 100) + "%"),
                     Component.literal("Expiration Day: ").withStyle(ChatFormatting.GRAY).append(Component.literal(expirationDateText).withStyle(ChatFormatting.YELLOW))
             ));
             if (!isShiftDown) {
                 tooltip.add(Component.literal("Hold <Shift> for more information").withStyle(ChatFormatting.GRAY));
-            } else {
+            } else if (curStage != null) {
                 tooltip.addAll(createAdvancedTooltip(stack, player, curStage, nextStage, creationTime, daysToNext, access));
             }
             return tooltip;
@@ -125,24 +168,34 @@ public final class SpoilingUtils {
         return Collections.emptyList();
     }
 
+    public static float getFreshness(long dayTime, long creationTime, int totalDays) {
+        return 1f - (float) (dayTime - creationTime) / (totalDays * 24000);
+    }
+
     private static List<Component> createAdvancedTooltip(ItemStack stack, Player player, FoodStage curStage, FoodStage nextStage, long creationTime, int daysToNext, RegistryAccess access) {
         Level level = player.level();
         Holder.Reference<FoodQuality> quality = access.lookupOrThrow(FSRegistries.FOOD_QUALITY_KEY).getOrThrow(curStage.quality());
         List<Component> advTooltip = new ArrayList<>();
+        int timeToNext = ((curStage.days() - daysToNext) * 24000) - (int) (level.dayTime() - (creationTime + (daysToNext * 24000)));
+        FoodSpoiling.LOGGER.debug("Time to next: {}", timeToNext);
+        int days = timeToNext / 24000;
+        MutableComponent nextStageComponent = Component.empty();
         if (nextStage != null) {
-            int timeToNext = ((curStage.days() - daysToNext) * 24000) - (int) (level.dayTime() - (creationTime + (daysToNext * 24000)));
-            FoodSpoiling.LOGGER.debug("Time to next: {}", timeToNext);
-            int days = timeToNext / 24000;
             Holder.Reference<FoodQuality> nextQuality = access.lookupOrThrow(FSRegistries.FOOD_QUALITY_KEY).getOrThrow(nextStage.quality());
-            advTooltip.add(Component.literal("Next Stage ")
-                    .append(Component.literal("%s".formatted(registryTranslation(nextQuality.key()).getString())).withStyle(Style.EMPTY.withColor(nextQuality.value().color())))
-                    .append((days > 0 ? " in " + days + " Days" : " in < 1 Day")).withStyle(ChatFormatting.GRAY));
+            nextStageComponent.append(Component.literal("Next Stage ")
+                    .append(Component.literal("%s".formatted(registryTranslation(nextQuality.key()).getString())).withStyle(Style.EMPTY.withColor(nextQuality.value().textColor()))));
+        } else {
+            nextStageComponent.append(Component.literal("Decayed").withStyle(ChatFormatting.DARK_RED));
         }
+        nextStageComponent.append(Component.literal(days > 0 ? " in " + days + " Days" : " in < 1 Day")).withStyle(ChatFormatting.GRAY);
+        advTooltip.add(nextStageComponent);
         FoodProperties foodProperties = stack.getFoodProperties(player);
-        advTooltip.add(Component.literal("Saturation Modifier: " + foodProperties.getNutrition() * quality.value().nutritionMod()).withStyle(ChatFormatting.GRAY));
-        advTooltip.add(Component.literal("Nutrition Modifier: " + foodProperties.getSaturationModifier() * quality.value().saturationMod()).withStyle(ChatFormatting.GRAY));
-        advTooltip.add(Component.literal("Effects:").withStyle(ChatFormatting.GRAY));
-        advTooltip.addAll(formatEffects(quality.get().effects()));
+        if (foodProperties != null) {
+            advTooltip.add(Component.literal("Saturation Modifier: " + foodProperties.getNutrition() * quality.value().nutritionMod()).withStyle(ChatFormatting.GRAY));
+            advTooltip.add(Component.literal("Nutrition Modifier: " + foodProperties.getSaturationModifier() * quality.value().saturationMod()).withStyle(ChatFormatting.GRAY));
+            advTooltip.add(Component.literal("Effects:").withStyle(ChatFormatting.GRAY));
+            advTooltip.addAll(formatEffects(quality.get().effects()));
+        }
         return advTooltip;
     }
 

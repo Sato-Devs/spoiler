@@ -14,5 +14,6 @@ public final class DataGatherer {
         generator.addProvider(event.includeServer(), new FSDatapackRegistryProvider(generator.getPackOutput(), event.getLookupProvider()));
         generator.addProvider(event.includeClient(), new FSEnUSLangProvider(generator.getPackOutput()));
         generator.addProvider(event.includeClient(), new FSItemModelProvider(generator.getPackOutput(), event.getExistingFileHelper()));
+        generator.addProvider(event.includeServer(), new FSTagsProvider.EntityTypeProvider(generator.getPackOutput(), event.getLookupProvider(), event.getExistingFileHelper()));
     }
 }

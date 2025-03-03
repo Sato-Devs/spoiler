@@ -3,6 +3,9 @@ package com.thepigcat.foodspoiling.events;
 import com.thepigcat.foodspoiling.FoodSpoiling;
 import com.thepigcat.foodspoiling.FoodSpoilingConfig;
 import com.thepigcat.foodspoiling.FSTags;
+import com.thepigcat.foodspoiling.api.FoodStage;
+import com.thepigcat.foodspoiling.api.FoodStages;
+import com.thepigcat.foodspoiling.registries.FSItems;
 import com.thepigcat.foodspoiling.utils.ClientUtils;
 import com.thepigcat.foodspoiling.utils.SpoilingUtils;
 import it.unimi.dsi.fastutil.objects.ObjectArraySet;
@@ -10,17 +13,21 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.chunk.ChunkAccess;
+import net.minecraft.world.level.chunk.LevelChunk;
 import net.minecraftforge.common.capabilities.Capability;
 import net.minecraftforge.common.capabilities.CapabilityManager;
 import net.minecraftforge.common.capabilities.CapabilityToken;
 import net.minecraftforge.common.capabilities.ForgeCapabilities;
 import net.minecraftforge.common.util.LazyOptional;
 import net.minecraftforge.event.TickEvent;
+import net.minecraftforge.event.entity.EntityJoinLevelEvent;
 import net.minecraftforge.event.entity.player.ItemFishedEvent;
 import net.minecraftforge.event.entity.player.ItemTooltipEvent;
 import net.minecraftforge.event.entity.player.PlayerEvent;
@@ -31,12 +38,13 @@ import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.items.IItemHandler;
 
 import java.util.Set;
+import java.util.UUID;
 
 @Mod.EventBusSubscriber(modid = FoodSpoiling.MODID)
 public final class FSEvents {
     // BlockEntities that we need to tick because they are loaded
     private static final Set<BlockPos> TICKING_BLOCK_ENTITIES = new ObjectArraySet<>();
-    private static int tickCounter = 0;
+    private static final Set<UUID> TICKING_ENTITIES = new ObjectArraySet<>();
 
     @SubscribeEvent
     public static void onItemPickup(PlayerEvent.ItemPickupEvent event) {
@@ -103,19 +111,59 @@ public final class FSEvents {
                 }
             }
         }
+
+        for (UUID uuid : TICKING_ENTITIES) {
+            if (level instanceof ServerLevel serverLevel) {
+                Entity entity = serverLevel.getEntity(uuid);
+                if (entity != null && !entity.isRemoved()) {
+                    ResourceLocation containerId = BuiltInRegistries.ENTITY_TYPE.getKey(entity.getType());
+                    double spoilageModifier = SpoilingUtils.getContainerSpoilageModifier(containerId);
+
+                    // Skip if it's a freezer (modifier is 0)
+                    if (spoilageModifier <= 0) continue;
+
+                    LazyOptional<IItemHandler> capability = entity.getCapability(ForgeCapabilities.ITEM_HANDLER);
+                    if (capability.isPresent()) {
+                        spoilItemsInHandler(capability.orElseThrow(NullPointerException::new), spoilageModifier, level.dayTime(), level.registryAccess());
+                    }
+                }
+            }
+        }
+
     }
 
     private static void spoilItemsInHandler(IItemHandler itemHandler, double spoilageModifier, long dayTime, HolderLookup.Provider lookup) {
         // Process items using capability
         for (int i = 0; i < itemHandler.getSlots(); i++) {
             ItemStack stack = itemHandler.getStackInSlot(i);
-            if (!stack.isEmpty() && stack.isEdible() && !stack.is(FSTags.UNSPOILABLE_FOODS)) {
-                if (SpoilingUtils.hasFoodData(stack)) {
-                    // TODO: Do shit regarding actual state
-                } else {
-                    ItemStack extracted = itemHandler.extractItem(i, stack.getCount(), false);
-                    SpoilingUtils.initialize(extracted, dayTime, lookup);
-                    itemHandler.insertItem(i, extracted, false);
+            if (!stack.isEmpty()) {
+                if (stack.isEdible() && !stack.is(FSTags.UNSPOILABLE_FOODS)) {
+                    if (SpoilingUtils.hasFoodData(stack)) {
+                        FoodStages stages = SpoilingUtils.getStages(stack, lookup);
+                        FoodStage stage = SpoilingUtils.getCurStage(stack, dayTime, lookup);
+
+                        if (stage != null && stages != null) {
+                            FoodStage lastStage = stages.stages().get(stages.stages().size() - 1);
+                            if (stage.days() == lastStage.days()) {
+                                ItemStack extracted = itemHandler.extractItem(i, stack.getCount(), false);
+                                itemHandler.insertItem(i, SpoilingUtils.createRottenMass(extracted), false);
+                            }
+                        }
+
+                    } else {
+                        ItemStack extracted = itemHandler.extractItem(i, stack.getCount(), false);
+                        SpoilingUtils.initialize(extracted, dayTime, lookup);
+                        itemHandler.insertItem(i, extracted, false);
+                    }
+                } else if (stack.is(FSItems.ROTTEN_MASS.get())) {
+                    FoodStages stages = SpoilingUtils.getStages(stack, lookup);
+                    if (stages != null) {
+                        FoodStage lastStage = stages.stages().get(stages.stages().size() - 1);
+                        if (SpoilingUtils.getFreshness(dayTime, SpoilingUtils.getCreationTime(stack), lastStage.days()) <= 0) {
+                            ItemStack extracted = itemHandler.extractItem(i, stack.getCount(), false);
+                            itemHandler.insertItem(i, SpoilingUtils.createDecomposedGoo(extracted), false);
+                        }
+                    }
                 }
             }
         }
@@ -137,6 +185,14 @@ public final class FSEvents {
     }
 
     @SubscribeEvent
+    public static void onEntityAdded(EntityJoinLevelEvent event) {
+        Entity entity = event.getEntity();
+        if (entity.getType().is(FSTags.ENTITIES_WITH_INVENTORY)) {
+            TICKING_ENTITIES.add(entity.getUUID());
+        }
+    }
+
+    @SubscribeEvent
     public static void onChunkUnload(ChunkEvent.Unload event) {
         if (event.getLevel().isClientSide()) return;
 
@@ -145,52 +201,32 @@ public final class FSEvents {
         }
     }
 
-//    @SubscribeEvent
-//    public static void onContainerOpen(PlayerContainerEvent.Open event) {
-//        if (FoodSpoilingConfig.debugContainerClass) {
-//            FoodSpoiling.LOGGER.info("Container opened: {}", event.getContainer().getClass().getName());
-//        }
-//
-//        // Resume spoilage for items that were paused
-//        Level level = event.getEntity().level();
-//        long gameTime = level.getGameTime();
-//
-//        for (Slot slot : event.getContainer().slots) {
-//            ItemStack stack = slot.getItem();
-//            if (!stack.isEmpty() && stack.is(FSTags.SPOILABLE_FOODS)) {
-//                FoodSpoilingUtils.resumeSpoilage(stack, gameTime);
-//            }
-//        }
-//    }
-
     @SubscribeEvent
     public static void onItemTooltip(ItemTooltipEvent event) {
         ItemStack stack = event.getItemStack();
         if (stack.is(FSTags.UNSPOILABLE_FOODS) || !FoodSpoilingConfig.showFoodTooltip) return;
 
-        if (SpoilingUtils.hasFoodData(stack) && event.getEntity().level().isClientSide) {
+        if (((stack.isEdible() && !stack.is(FSTags.UNSPOILABLE_FOODS)) || stack.is(FSItems.ROTTEN_MASS.get())) && SpoilingUtils.hasFoodData(stack) && event.getEntity().level().isClientSide) {
             event.getToolTip().addAll(SpoilingUtils.getSpoilingTooltip(stack, event.getEntity(), ClientUtils.hasShiftDown()));
         }
 
     }
 
-    /**
-     * Registers a block entity position for food spoilage tracking
-     * Called by the LevelChunkMixin
-     */
     public static void registerBlockEntity(BlockPos pos) {
         if (pos != null) {
             TICKING_BLOCK_ENTITIES.add(pos);
         }
     }
 
-    /**
-     * Unregisters a block entity position from food spoilage tracking
-     * Called by the LevelChunkMixin
-     */
     public static void unregisterBlockEntity(BlockPos pos) {
         if (pos != null) {
             TICKING_BLOCK_ENTITIES.remove(pos);
+        }
+    }
+
+    public static void unregisterEntity(UUID uuid) {
+        if (uuid != null) {
+            TICKING_ENTITIES.remove(uuid);
         }
     }
 

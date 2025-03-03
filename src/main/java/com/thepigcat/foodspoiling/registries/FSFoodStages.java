@@ -18,7 +18,9 @@ public final class FSFoodStages {
     public static final ResourceKey<FoodStages> RAW_MEATS = register("raw_meats", new FoodStages(FSTags.RAW_MEATS, List.of(
             new FoodStage(FSFoodQualities.FRESH, 10),
             new FoodStage(FSFoodQualities.SPOILED, 20),
-            new FoodStage(FSFoodQualities.STALE, 30)
+            new FoodStage(FSFoodQualities.STALE, 30),
+            new FoodStage(FSFoodQualities.MOLDY, 40),
+            new FoodStage(FSFoodQualities.AGED, 50)
     )));
 
     private static void register(BootstapContext<FoodStages> context, ResourceKey<FoodStages> key, FoodStages builder) {

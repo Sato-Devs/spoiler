@@ -1,6 +1,7 @@
 {
-  "color": -5593266,
   "effects": [],
   "nutrition_mod": 0.0,
-  "saturation_mod": 10.0
+  "saturation_mod": 10.0,
+  "text_color": -5593266,
+  "tint_color": -1805536462
 }
