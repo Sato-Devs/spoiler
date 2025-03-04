@@ -2,6 +2,7 @@ package com.thepigcat.foodspoiling.events;
 
 import com.thepigcat.foodspoiling.FSRegistries;
 import com.thepigcat.foodspoiling.FoodSpoiling;
+import com.thepigcat.foodspoiling.FoodSpoilingConfig;
 import com.thepigcat.foodspoiling.api.FoodStage;
 import com.thepigcat.foodspoiling.utils.SpoilingUtils;
 import net.minecraft.client.Minecraft;
@@ -21,7 +22,7 @@ public class FSClientModEvents {
         for (Item item : BuiltInRegistries.ITEM) {
             if (item.isEdible()) {
                 event.register((stack, layer) -> {
-                    if (SpoilingUtils.hasFoodData(stack)) {
+                    if (SpoilingUtils.hasFoodData(stack) && FoodSpoilingConfig.renderSpoiledOverlay) {
                         Level level = Minecraft.getInstance().level;
                         RegistryAccess lookup = level.registryAccess();
                         FoodStage curStage = SpoilingUtils.getCurStage(stack, level.dayTime(), lookup);

@@ -22,7 +22,7 @@ public class FSTagsProvider {
 
         @Override
         protected void addTags(HolderLookup.Provider pProvider) {
-            tag(FSTags.ENTITIES_WITH_INVENTORY, EntityType.PLAYER, EntityType.DONKEY, EntityType.MULE, EntityType.LLAMA, EntityType.CHEST_MINECART, EntityType.HOPPER_MINECART);
+            tag(FSTags.ENTITIES_WITH_INVENTORY, EntityType.PLAYER, EntityType.DONKEY, EntityType.MULE, EntityType.LLAMA, EntityType.CHEST_MINECART, EntityType.HOPPER_MINECART, EntityType.ITEM, EntityType.ITEM_FRAME, EntityType.GLOW_ITEM_FRAME);
         }
 
         public void tag(TagKey<EntityType<?>> entityTypeTagKey, EntityType<?>... entityTypes) {

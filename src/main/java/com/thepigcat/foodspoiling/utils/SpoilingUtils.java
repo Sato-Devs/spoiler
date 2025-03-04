@@ -39,6 +39,7 @@ public final class SpoilingUtils {
     public static final String FOOD_STATE_KEY = "food_state";
     public static final String CREATION_TIME_KEY = "creation_time";
     public static final String FOOD_STAGES_KEY = "food_stages";
+    public static final String SPOILING_MODIFIER_KEY = "spoiling_modifier";
 
     public static void initialize(ItemStack stack, long dayTime, HolderLookup.Provider lookup) {
         List<Holder.Reference<FoodStages>> foodStageElements = lookup.lookupOrThrow(FSRegistries.FOOD_STAGES_KEY).listElements().toList();
@@ -236,13 +237,9 @@ public final class SpoilingUtils {
         return Component.translatable(registry.key().location().getPath() + "." + objLoc.getNamespace() + "." + objLoc.getPath());
     }
 
-    public static double getContainerSpoilageModifier(ResourceLocation containerId) {
-        if (FoodSpoilingConfig.freezingContainers.contains(containerId)) {
-            return 0.0; // No spoilage in freezing containers
-        }
-
-        if (FoodSpoilingConfig.containerModifiers.containsKey(containerId)) {
-            return FoodSpoilingConfig.containerModifiers.get(containerId);
+    public static double getContainerSpoilageModifier(ResourceLocation blockentityId) {
+        if (FoodSpoilingConfig.containerModifiers.containsKey(blockentityId)) {
+            return FoodSpoilingConfig.containerModifiers.get(blockentityId);
         }
 
         return 1.0; // Default: normal spoilage rate
