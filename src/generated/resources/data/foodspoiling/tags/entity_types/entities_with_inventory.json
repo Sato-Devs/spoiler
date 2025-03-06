@@ -5,6 +5,9 @@
     "minecraft:mule",
     "minecraft:llama",
     "minecraft:chest_minecart",
-    "minecraft:hopper_minecart"
+    "minecraft:hopper_minecart",
+    "minecraft:item",
+    "minecraft:item_frame",
+    "minecraft:glow_item_frame"
   ]
 }

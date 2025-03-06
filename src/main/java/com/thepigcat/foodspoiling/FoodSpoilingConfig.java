@@ -1,12 +1,12 @@
 package com.thepigcat.foodspoiling;
 
+import com.electronwill.nightconfig.core.Config;
+import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraft.world.item.Item;
 import net.minecraftforge.common.ForgeConfigSpec;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.event.config.ModConfigEvent;
-import net.minecraftforge.registries.ForgeRegistries;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -47,11 +47,11 @@ public final class FoodSpoilingConfig {
             .define("tooltips.showFoodTooltip", true);
 
     // Container modifiers
-    private static final ForgeConfigSpec.ConfigValue<Map<String, Double>> CONTAINER_MODIFIERS = BUILDER
+    private static final ForgeConfigSpec.ConfigValue<List<? extends String>> CONTAINER_MODIFIERS = BUILDER
             .comment("Spoilage rate modifiers for different containers (0.0 = freeze the item (dont spoil it), 0.5 = half rate, 1.0 = normal rate, 2.0 = double rate)")
-            .define("containers.modifiers", Map.of(
-                    "minecraft:chest", 0.5,
-                    "minecraft:barrel", 0.8
+            .defineList("containers.modifiers", List.of(
+                    "minecraft:chest=0",
+                    "minecraft:barrel=0.8"
             ), FoodSpoilingConfig::validateContainerModifier);
 
     // Final spec
@@ -65,10 +65,26 @@ public final class FoodSpoilingConfig {
     public static boolean becomeRottenMass;
     public static boolean becomeDecomposedGoo;
     public static boolean showFoodTooltip;
-    public static Map<ResourceLocation, Double> containerModifiers;
+    public static Map<ResourceLocation, Float> containerModifiers;
 
     private static boolean validateContainerModifier(final Object obj) {
-        return true;
+        if (obj instanceof String str) {
+            String s = str.replaceAll("\\s+", "");
+            String[] split = s.split("=");
+            return split.length == 2
+                    && ResourceLocation.isValidResourceLocation(split[0])
+                    && validFloat(split[1]);
+        }
+        return false;
+    }
+
+    private static boolean validFloat(String theFloat) {
+        try {
+            Float.parseFloat(theFloat);
+            return true;
+        } catch (Exception ignored) {
+            return false;
+        }
     }
 
     @SubscribeEvent
@@ -87,9 +103,14 @@ public final class FoodSpoilingConfig {
         showFoodTooltip = SHOW_FOOD_TOOLTIP.get();
 
         // Load container settings
-        containerModifiers = CONTAINER_MODIFIERS.get().entrySet().stream()
-                .map(e -> new AbstractMap.SimpleEntry<>(new ResourceLocation(e.getKey()), e.getValue()))
-                .collect(Collectors.toMap(AbstractMap.SimpleEntry::getKey, AbstractMap.SimpleEntry::getValue));
+        containerModifiers = CONTAINER_MODIFIERS.get().stream().map(FoodSpoilingConfig::strToEntry).collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
 
+    }
+
+    private static Map.Entry<ResourceLocation, Float> strToEntry(String s) {
+        String[] split = s.split("=");
+        ResourceLocation loc = new ResourceLocation(split[0]);
+        float mod = Float.parseFloat(split[1]);
+        return new AbstractMap.SimpleEntry<>(loc, mod);
     }
 }

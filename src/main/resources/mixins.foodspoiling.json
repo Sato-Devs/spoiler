@@ -6,6 +6,7 @@
   "refmap": "mixins.foodspoiling.refmap.json",
   "mixins": [
     "EntityMixin",
+    "FoodDataMixin",
     "LevelChunkMixin"
   ],
   "injectors": {
