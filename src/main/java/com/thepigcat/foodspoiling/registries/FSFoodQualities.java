@@ -19,6 +19,7 @@ public final class FSFoodQualities {
             .textColor(FastColor.ARGB32.color(255, 134, 221, 79))
             .tintColor(-1)
             .saturation(10)
+            .usableInRecipes(FoodQuality.RecipeType.CRAFTING)
     );
     public static final ResourceKey<FoodQuality> SPOILED = register("spoiled", builder -> builder
             .textColor(FastColor.ARGB32.color(255, 135, 170, 78))

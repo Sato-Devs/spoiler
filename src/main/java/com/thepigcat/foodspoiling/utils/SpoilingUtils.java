@@ -15,7 +15,6 @@ import net.minecraft.core.HolderLookup;
 import net.minecraft.core.Registry;
 import net.minecraft.core.RegistryAccess;
 import net.minecraft.core.registries.BuiltInRegistries;
-import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.network.chat.Style;
@@ -29,73 +28,56 @@ import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.alchemy.Potion;
 import net.minecraft.world.level.Level;
-import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
 public final class SpoilingUtils {
-    public static final String FOOD_STATE_KEY = "food_state";
-    public static final String CREATION_TIME_KEY = "creation_time";
-    public static final String FOOD_STAGES_KEY = "food_stages";
-    public static final String SPOILING_MODIFIER_KEY = "spoiling_modifier";
-    public static final String FRESHNESS_KEY = "freshness";
-    public static final String EXPIRATION_DATE_KEY = "expiration_date";
-
-    public static void initialize(ItemStack stack, long dayTime, HolderLookup.Provider lookup) {
+    public static void initialize(ItemStack stack, long dayTime, float spoilingModifier, HolderLookup.Provider lookup) {
         List<Holder.Reference<FoodStages>> foodStageElements = lookup.lookupOrThrow(FSRegistries.FOOD_STAGES_KEY).listElements().toList();
 
-        CompoundTag itemTag = stack.getOrCreateTag();
-        CompoundTag foodStateTag = itemTag.getCompound(FOOD_STATE_KEY);
         for (Holder.Reference<FoodStages> stages : foodStageElements) {
             TagKey<Item> key = stages.value().key();
             if (stack.is(key)) {
-                foodStateTag.putLong(CREATION_TIME_KEY, dayTime);
-                foodStateTag.putString(FOOD_STAGES_KEY, stages.key().location().toString());
+                NBTSpoilingUtils.initItem(stack);
+                NBTSpoilingUtils.setCreationTime(stack, dayTime);
+                NBTSpoilingUtils.setFoodStages(stack, stages.key());
+                NBTSpoilingUtils.setMaxSpoilingProgress(stack, getMaxProgress(stack, lookup));
+                NBTSpoilingUtils.setSpoilingModifier(stack, spoilingModifier);
+                NBTSpoilingUtils.setLastDayTime(stack, dayTime);
                 break;
             }
         }
 
-        itemTag.put(FOOD_STATE_KEY, foodStateTag);
-
     }
 
-    public static long getCreationTime(ItemStack stack) {
-        return stack.hasTag() ? stack.getTag().getCompound(FOOD_STATE_KEY).getLong(CREATION_TIME_KEY) : 0;
-    }
-
-    public static @Nullable ResourceKey<FoodStages> getFoodStages(ItemStack stack) {
-        if (stack.hasTag()) {
-            String type = stack.getTag().getCompound(FOOD_STATE_KEY).getString(FOOD_STAGES_KEY);
-            return ResourceKey.create(FSRegistries.FOOD_STAGES_KEY, new ResourceLocation(type));
+    public static int getMaxProgress(ItemStack stack, HolderLookup.Provider lookup) {
+        FoodStage lastStage = getLastStage(stack, lookup);
+        if (lastStage != null) {
+            return lastStage.days() * 24000;
         }
-        return null;
-    }
-
-    public static boolean hasFoodData(ItemStack stack) {
-        return stack.hasTag()
-                && stack.getTag().contains(FOOD_STATE_KEY)
-                && stack.getTag().getCompound(FOOD_STATE_KEY).contains(FOOD_STAGES_KEY)
-                && stack.getTag().getCompound(FOOD_STATE_KEY).contains(CREATION_TIME_KEY);
+        return -1;
     }
 
     public static FoodStage getCurStage(ItemStack stack, long dayTime, HolderLookup.Provider lookup) {
         FoodStages stages = getStages(stack, lookup);
-        long creationTime = getCreationTime(stack);
-        int creationDay = Math.round((creationTime - creationTime % 24000) / 24000f);
-        int curDay = (int) (dayTime / 24000 - creationDay);
-        for (FoodStage stage : stages.stages()) {
-            if (curDay < stage.days()) {
-                return stage;
+        if (stages != null) {
+            long creationTime = NBTSpoilingUtils.getCreationTime(stack);
+            int creationDay = Math.round((creationTime - creationTime % 24000) / 24000f);
+            int curDay = (int) (dayTime / 24000 - creationDay);
+            for (FoodStage stage : stages.stages()) {
+                if (curDay < stage.days()) {
+                    return stage;
+                }
             }
         }
         return null;
     }
 
     public static FoodStages getStages(ItemStack itemStack, HolderLookup.Provider lookup) {
-        if (hasFoodData(itemStack)) {
-            ResourceKey<FoodStages> foodStages = getFoodStages(itemStack);
+        if (NBTSpoilingUtils.hasFoodState(itemStack)) {
+            ResourceKey<FoodStages> foodStages = NBTSpoilingUtils.getFoodStages(itemStack);
             if (foodStages != null) {
                 return lookup.lookupOrThrow(FSRegistries.FOOD_STAGES_KEY).getOrThrow(foodStages).value();
             }
@@ -105,8 +87,7 @@ public final class SpoilingUtils {
 
     public static ItemStack createRottenMass(ItemStack foodStack) {
         ItemStack stack = new ItemStack(FSItems.ROTTEN_MASS.get(), foodStack.getCount());
-        CompoundTag tag = stack.getOrCreateTag();
-        tag.put(FOOD_STATE_KEY, foodStack.getOrCreateTag().get(FOOD_STATE_KEY));
+        NBTSpoilingUtils.setFoodState(stack, NBTSpoilingUtils.getFoodState(foodStack));
         return stack;
     }
 
@@ -114,109 +95,62 @@ public final class SpoilingUtils {
         return new ItemStack(FSItems.DECOMPOSED_GOO.get(), rottenMassStack.getCount());
     }
 
-    public static void setSpoilingModifier(ItemStack itemStack, float spoilingModifier) {
-        if (hasFoodData(itemStack)) {
-            CompoundTag tag = itemStack.getOrCreateTag();
-            CompoundTag stateTag = tag.getCompound(FOOD_STATE_KEY);
-            stateTag.putFloat(SPOILING_MODIFIER_KEY, spoilingModifier);
-            tag.put(FOOD_STATE_KEY, stateTag);
-        }
-    }
-
-    public static float getSpoilingModifier(ItemStack stack) {
-        if (hasFoodData(stack)) {
-            CompoundTag tag = stack.getOrCreateTag();
-            return tag.getCompound(FOOD_STATE_KEY).getFloat(SPOILING_MODIFIER_KEY);
-        }
-        return 0;
-    }
-
-    public static void setFreshnessSnapshot(ItemStack stack, float freshness) {
-        if (hasFoodData(stack)) {
-            CompoundTag tag = stack.getOrCreateTag();
-            CompoundTag stateTag = tag.getCompound(FOOD_STATE_KEY);
-            stateTag.putFloat(FRESHNESS_KEY, freshness);
-            tag.put(FOOD_STATE_KEY, stateTag);
-        }
-    }
-
-    public static float getFreshnessSnapshot(ItemStack stack) {
-        if (hasFoodData(stack)) {
-            return stack.getOrCreateTag().getCompound(FOOD_STATE_KEY).getFloat(FRESHNESS_KEY);
-        }
-        return -1;
-    }
-
-    public static void setExpirationDateSnapshot(ItemStack stack, long expirationDate) {
-        if (hasFoodData(stack)) {
-            CompoundTag tag = stack.getOrCreateTag();
-            CompoundTag stateTag = tag.getCompound(FOOD_STATE_KEY);
-            stateTag.putLong(EXPIRATION_DATE_KEY, expirationDate);
-            tag.put(FOOD_STATE_KEY, stateTag);
-        }
-    }
-
-    public static long getExpirationDateSnapshot(ItemStack stack) {
-        if (hasFoodData(stack)) {
-            return stack.getOrCreateTag().getCompound(FOOD_STATE_KEY).getLong(EXPIRATION_DATE_KEY);
-        }
-        return -1;
-    }
-
     public static List<Component> getSpoilingTooltip(ItemStack stack, Player player, boolean isShiftDown) {
         Level level = player.level();
-        long creationTime = getCreationTime(stack);
+        long creationTime = NBTSpoilingUtils.getCreationTime(stack);
         int creationDay = Math.round((creationTime - creationTime % 24000) / 24000f);
         //long diff = level.dayTime() - creationTime;
         long dayTime = level.dayTime();
         int curDay = (int) (dayTime / 24000 - creationDay);
         RegistryAccess access = level.registryAccess();
-        ResourceKey<FoodStages> foodStagesType = getFoodStages(stack);
-        Holder.Reference<FoodStages> foodStages = access.lookupOrThrow(FSRegistries.FOOD_STAGES_KEY).getOrThrow(foodStagesType);
-        List<FoodStage> stages = foodStages.value().stages();
-        if (!stages.isEmpty()) {
-            ResourceKey<FoodQuality> qualityKey = null;
-            FoodStage curStage = null;
-            FoodStage lastStage = null;
-            FoodStage nextStage = null;
-            boolean foundDays = false;
-            int daysToNext = 0;
-            for (int i = 0; i < stages.size(); i++) {
-                FoodStage stage = stages.get(i);
+        ResourceKey<FoodStages> foodStagesType = NBTSpoilingUtils.getFoodStages(stack);
+        if (foodStagesType != null) {
+            Holder.Reference<FoodStages> foodStages = access.lookupOrThrow(FSRegistries.FOOD_STAGES_KEY).getOrThrow(foodStagesType);
+            List<FoodStage> stages = foodStages.value().stages();
+            if (!stages.isEmpty()) {
+                ResourceKey<FoodQuality> qualityKey = null;
+                FoodStage curStage = null;
+                FoodStage lastStage = null;
+                FoodStage nextStage = null;
+                boolean foundDays = false;
+                int daysToNext = 0;
+                for (int i = 0; i < stages.size(); i++) {
+                    FoodStage stage = stages.get(i);
 
-                if (curDay < stage.days() && !foundDays) {
-                    curStage = stage;
-                    qualityKey = stage.quality();
-                    if (i + 1 < stages.size()) {
-                        nextStage = stages.get(i + 1);
-                        daysToNext = stage.days();
+                    if (curDay < stage.days() && !foundDays) {
+                        curStage = stage;
+                        qualityKey = stage.quality();
+                        if (i + 1 < stages.size()) {
+                            nextStage = stages.get(i + 1);
+                            daysToNext = stage.days();
+                        }
+                        foundDays = true;
                     }
-                    foundDays = true;
-                }
 
-                if (i == stages.size() - 1) {
-                    lastStage = stage;
+                    if (i == stages.size() - 1) {
+                        lastStage = stage;
+                    }
                 }
+                int totalDays = lastStage.days();
+                long expirationDate = (creationTime + (totalDays * 24000L));
+                int expirationDay = (int) (expirationDate / 24000);
+                String expirationDateText = String.format("Day %d - %s", expirationDay, timeToHoursMinutes(level, expirationDate));
+                ResourceKey<FoodQuality> key = qualityKey != null ? qualityKey : stages.get(stages.size() - 1).quality();
+                Holder.Reference<FoodQuality> quality = access.lookupOrThrow(FSRegistries.FOOD_QUALITY_KEY).getOrThrow(key);
+                float freshness = getFreshness(NBTSpoilingUtils.getSpoilingProgress(stack), NBTSpoilingUtils.getMaxSpoilingProgress(stack));
+                List<Component> tooltip = new ArrayList<>(List.of(
+                        Component.literal("Progress: " + NBTSpoilingUtils.getSpoilingProgress(stack)),
+                        Component.literal("Quality: ").withStyle(ChatFormatting.GRAY).append(registryTranslation(key).copy().withStyle(Style.EMPTY.withColor(quality.value().textColor()))),
+                        Component.literal("Freshness: ").withStyle(ChatFormatting.GRAY).append(Math.round(freshness * 100) + "%"),
+                        Component.literal("Expires in: ").withStyle(ChatFormatting.GRAY).append(Component.literal(expirationDateText).withStyle(ChatFormatting.YELLOW))
+                ));
+                if (!isShiftDown) {
+                    tooltip.add(Component.literal("Hold <Shift> for more information").withStyle(ChatFormatting.GRAY));
+                } else if (curStage != null) {
+                    tooltip.addAll(createAdvancedTooltip(stack, player, curStage, nextStage, creationTime, daysToNext, access));
+                }
+                return tooltip;
             }
-            int totalDays = lastStage.days();
-            long expirationDate;
-                expirationDate = getExpirationDateSnapshot(stack);
-            int expirationDay = (int) (expirationDate / 24000);
-            String expirationDateText = String.format("%d Days - %s", expirationDay, timeToHoursMinutes(level, expirationDate));
-            ResourceKey<FoodQuality> key = qualityKey != null ? qualityKey : stages.get(stages.size() - 1).quality();
-            Holder.Reference<FoodQuality> quality = access.lookupOrThrow(FSRegistries.FOOD_QUALITY_KEY).getOrThrow(key);
-            float freshness = getFreshness(stack, dayTime, creationTime, totalDays);
-            List<Component> tooltip = new ArrayList<>(List.of(
-                    Component.literal("Quality: ").withStyle(ChatFormatting.GRAY).append(registryTranslation(key).copy().withStyle(Style.EMPTY.withColor(quality.value().textColor()))),
-                    Component.literal("Freshness: ").withStyle(ChatFormatting.GRAY).append(Math.round(freshness * 100) + "%"),
-                    Component.literal("Expires in: ").withStyle(ChatFormatting.GRAY).append(Component.literal(expirationDateText).withStyle(ChatFormatting.YELLOW))
-            ));
-            if (!isShiftDown) {
-                tooltip.add(Component.literal("Hold <Shift> for more information").withStyle(ChatFormatting.GRAY));
-            } else if (curStage != null) {
-                tooltip.addAll(createAdvancedTooltip(stack, player, curStage, nextStage, creationTime, daysToNext, access));
-            }
-            return tooltip;
         }
         return Collections.emptyList();
     }
@@ -226,30 +160,8 @@ public final class SpoilingUtils {
         return stages != null ? stages.stages().get(stages.stages().size() - 1) : null;
     }
 
-    public static long getExpirationDate(ItemStack stack, long dayTime, HolderLookup.Provider lookup) {
-        long creationTime = getCreationTime(stack);
-        FoodStage lastStage = getLastStage(stack, lookup);
-        if (lastStage != null) {
-            int totalDays = lastStage.days();
-            long expirationDate = getExpirationDateSnapshot(stack);
-            return (long) (((creationTime + (totalDays * 24000L) - dayTime) - expirationDate) * getSpoilingModifier(stack) + expirationDate);
-        }
-        return -1;
-    }
-
-    // Overload for the other method cuz boilerplate
-    public static float getFreshness(ItemStack stack, long dayTime, HolderLookup.Provider lookup) {
-        FoodStages stages = getStages(stack, lookup);
-        if (stages != null) {
-            return getFreshness(stack, dayTime, SpoilingUtils.getCreationTime(stack), getLastStage(stack, lookup).days());
-        }
-        return 0;
-    }
-
-    public static float getFreshness(ItemStack stack, long dayTime, long creationTime, int totalDays) {
-        float v = 1f - (float) (dayTime - creationTime) / (totalDays * 24000);
-        float snapshot = getFreshnessSnapshot(stack);
-        return (v - snapshot) * getSpoilingModifier(stack) + snapshot;
+    public static float getFreshness(float progress, float maxProgress) {
+        return 1f - (progress / maxProgress);
     }
 
     private static List<Component> createAdvancedTooltip(ItemStack stack, Player player, FoodStage curStage, FoodStage nextStage, long creationTime, int daysToNext, RegistryAccess access) {
@@ -316,12 +228,12 @@ public final class SpoilingUtils {
         return Component.translatable(registry.key().location().getPath() + "." + objLoc.getNamespace() + "." + objLoc.getPath());
     }
 
-    public static double getContainerSpoilageModifier(ResourceLocation blockentityId) {
+    public static float getContainerSpoilageModifier(ResourceLocation blockentityId) {
         if (FoodSpoilingConfig.containerModifiers.containsKey(blockentityId)) {
             return FoodSpoilingConfig.containerModifiers.get(blockentityId);
         }
 
-        return 1.0;
+        return 1.0f;
     }
 
 }

@@ -7,7 +7,12 @@
   "mixins": [
     "EntityMixin",
     "FoodDataMixin",
-    "LevelChunkMixin"
+    "ItemMixin",
+    "LevelChunkMixin",
+    "RecipeManagerMixin",
+    "ResultSlotMixin",
+    "ShapedRecipeMixin",
+    "ShapelessRecipeMixin"
   ],
   "injectors": {
     "defaultRequire": 1

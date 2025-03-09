@@ -7,6 +7,7 @@ import com.thepigcat.foodspoiling.FSTags;
 import com.thepigcat.foodspoiling.FoodSpoiling;
 import com.thepigcat.foodspoiling.api.FoodQuality;
 import com.thepigcat.foodspoiling.api.FoodStage;
+import com.thepigcat.foodspoiling.utils.NBTSpoilingUtils;
 import com.thepigcat.foodspoiling.utils.SpoilingUtils;
 import net.minecraft.core.Holder;
 import net.minecraft.world.effect.MobEffectInstance;
@@ -32,7 +33,7 @@ public class FoodDataMixin {
     @Inject(method = "Lnet/minecraft/world/food/FoodData;eat(Lnet/minecraft/world/item/Item;Lnet/minecraft/world/item/ItemStack;Lnet/minecraft/world/entity/LivingEntity;)V", at = @At("HEAD"), cancellable = true)
     private void spoiling$eat(Item foodItem, ItemStack foodStack, LivingEntity entity, CallbackInfo ci) {
         FoodSpoiling.LOGGER.debug("Mixin works");
-        if (SpoilingUtils.hasFoodData(foodStack) && !foodStack.is(FSTags.UNSPOILABLE_FOODS) && foodStack.isEdible()) {
+        if (NBTSpoilingUtils.hasFoodState(foodStack) && !foodStack.is(FSTags.UNSPOILABLE_FOODS) && foodStack.isEdible()) {
             FoodSpoiling.LOGGER.debug("Eatable");
             Level level = entity.level();
             FoodStage curStage = SpoilingUtils.getCurStage(foodStack, level.dayTime(), level.registryAccess());

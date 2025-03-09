@@ -6,13 +6,15 @@ import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import com.thepigcat.foodspoiling.utils.CodecUtils;
 import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.util.StringRepresentable;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.item.alchemy.Potion;
+import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
 import java.util.List;
 
-public record FoodQuality(int textColor, int tintColor, float saturationMod, float nutritionMod, List<Pair<Either<MobEffectInstance, Potion>, Float>> effects) {
+public record FoodQuality(int textColor, int tintColor, float saturationMod, float nutritionMod, RecipeType usableInRecipes, List<Pair<Either<MobEffectInstance, Potion>, Float>> effects) {
     private static final Codec<Pair<Either<MobEffectInstance, Potion>, Float>> EFFECT_CODEC = RecordCodecBuilder.create(inst -> inst.group(
             Codec.either(CodecUtils.MOB_EFFECT_INSTANCE_CODEC, CodecUtils.registryCodec(BuiltInRegistries.POTION)).fieldOf("effect").forGetter(Pair::getFirst),
             Codec.FLOAT.fieldOf("probability").forGetter(Pair::getSecond)
@@ -22,6 +24,7 @@ public record FoodQuality(int textColor, int tintColor, float saturationMod, flo
             Codec.INT.fieldOf("tint_color").forGetter(FoodQuality::tintColor),
             Codec.FLOAT.fieldOf("saturation_mod").forGetter(FoodQuality::saturationMod),
             Codec.FLOAT.fieldOf("nutrition_mod").forGetter(FoodQuality::nutritionMod),
+            StringRepresentable.fromEnum(RecipeType::values).optionalFieldOf("recipes_usable", RecipeType.ALL).forGetter(FoodQuality::usableInRecipes),
             EFFECT_CODEC.listOf().fieldOf("effects").forGetter(FoodQuality::effects)
     ).apply(inst, FoodQuality::new));
 
@@ -34,6 +37,7 @@ public record FoodQuality(int textColor, int tintColor, float saturationMod, flo
         private int tintColor;
         private float saturation;
         private int nutrition;
+        private RecipeType usableInRecipes = RecipeType.ALL;
         private final List<Pair<Either<MobEffectInstance, Potion>, Float>> effects = new ArrayList<>();
 
         private Builder() {
@@ -59,6 +63,11 @@ public record FoodQuality(int textColor, int tintColor, float saturationMod, flo
             return this;
         }
 
+        public Builder usableInRecipes(RecipeType usableInRecipes) {
+            this.usableInRecipes = usableInRecipes;
+            return this;
+        }
+
         public Builder effects(Potion potion, float probability) {
             this.effects.add(Pair.of(Either.right(potion), probability));
             return this;
@@ -70,7 +79,22 @@ public record FoodQuality(int textColor, int tintColor, float saturationMod, flo
         }
 
         public FoodQuality build() {
-            return new FoodQuality(textColor, tintColor, saturation, nutrition, effects);
+            return new FoodQuality(textColor, tintColor, saturation, nutrition, usableInRecipes, effects);
+        }
+    }
+
+    public enum RecipeType implements StringRepresentable {
+        ALL,
+        CRAFTING,
+        NONE;
+
+        @Override
+        public @NotNull String getSerializedName() {
+            return switch (this) {
+                case ALL -> "all";
+                case CRAFTING -> "crafting";
+                case NONE -> "none";
+            };
         }
     }
 }
