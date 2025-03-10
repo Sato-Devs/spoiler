@@ -9,10 +9,12 @@ import net.minecraft.tags.TagKey;
 import net.minecraft.world.item.Item;
 
 import java.util.List;
+import java.util.Optional;
 
-public record FoodStages(TagKey<Item> key, List<FoodStage> stages) {
+// Optional key may only be empty if this is the default food stages
+public record FoodStages(Optional<TagKey<Item>> key, List<FoodStage> stages) {
     public static final Codec<FoodStages> CODEC = RecordCodecBuilder.create(inst -> inst.group(
-            TagKey.codec(Registries.ITEM).fieldOf("items").forGetter(FoodStages::key),
+            TagKey.codec(Registries.ITEM).optionalFieldOf("items").forGetter(FoodStages::key),
             FoodStage.CODEC.listOf().fieldOf("stages").forGetter(FoodStages::stages)
     ).apply(inst, FoodStages::new));
 }

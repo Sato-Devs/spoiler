@@ -8,6 +8,7 @@ import com.thepigcat.foodspoiling.FoodSpoilingConfig;
 import com.thepigcat.foodspoiling.api.FoodQuality;
 import com.thepigcat.foodspoiling.api.FoodStage;
 import com.thepigcat.foodspoiling.api.FoodStages;
+import com.thepigcat.foodspoiling.registries.FSFoodStages;
 import com.thepigcat.foodspoiling.registries.FSItems;
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.Holder;
@@ -32,23 +33,31 @@ import net.minecraft.world.level.Level;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 
 public final class SpoilingUtils {
     public static void initialize(ItemStack stack, long dayTime, float spoilingModifier, HolderLookup.Provider lookup) {
         List<Holder.Reference<FoodStages>> foodStageElements = lookup.lookupOrThrow(FSRegistries.FOOD_STAGES_KEY).listElements().toList();
 
-        for (Holder.Reference<FoodStages> stages : foodStageElements) {
-            TagKey<Item> key = stages.value().key();
-            if (stack.is(key)) {
-                NBTSpoilingUtils.initItem(stack);
-                NBTSpoilingUtils.setCreationTime(stack, dayTime);
-                NBTSpoilingUtils.setFoodStages(stack, stages.key());
-                NBTSpoilingUtils.setMaxSpoilingProgress(stack, getMaxProgress(stack, lookup));
-                NBTSpoilingUtils.setSpoilingModifier(stack, spoilingModifier);
-                NBTSpoilingUtils.setLastDayTime(stack, dayTime);
+        ResourceKey<FoodStages> stages = null;
+        for (Holder.Reference<FoodStages> foodStages : foodStageElements) {
+            Optional<TagKey<Item>> key = foodStages.value().key();
+            if (key.isPresent() && stack.is(key.get())) {
+                stages = foodStages.key();
                 break;
             }
         }
+
+        if (stages == null) {
+            stages = FSFoodStages.DEFAULT;
+        }
+
+        NBTSpoilingUtils.initItem(stack);
+        NBTSpoilingUtils.setCreationTime(stack, dayTime);
+        NBTSpoilingUtils.setFoodStages(stack, stages);
+        NBTSpoilingUtils.setMaxSpoilingProgress(stack, getMaxProgress(stack, lookup));
+        NBTSpoilingUtils.setSpoilingModifier(stack, spoilingModifier);
+        NBTSpoilingUtils.setLastDayTime(stack, dayTime);
 
     }
 
@@ -139,7 +148,6 @@ public final class SpoilingUtils {
                 Holder.Reference<FoodQuality> quality = access.lookupOrThrow(FSRegistries.FOOD_QUALITY_KEY).getOrThrow(key);
                 float freshness = getFreshness(NBTSpoilingUtils.getSpoilingProgress(stack), NBTSpoilingUtils.getMaxSpoilingProgress(stack));
                 List<Component> tooltip = new ArrayList<>(List.of(
-                        Component.literal("Progress: " + NBTSpoilingUtils.getSpoilingProgress(stack)),
                         Component.literal("Quality: ").withStyle(ChatFormatting.GRAY).append(registryTranslation(key).copy().withStyle(Style.EMPTY.withColor(quality.value().textColor()))),
                         Component.literal("Freshness: ").withStyle(ChatFormatting.GRAY).append(Math.round(freshness * 100) + "%"),
                         Component.literal("Expires in: ").withStyle(ChatFormatting.GRAY).append(Component.literal(expirationDateText).withStyle(ChatFormatting.YELLOW))

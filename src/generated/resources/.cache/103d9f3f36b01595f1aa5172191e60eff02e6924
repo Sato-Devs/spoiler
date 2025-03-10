@@ -1,7 +1,8 @@
-// 1.20.1	2025-03-09T20:51:08.662418846	Registries
+// 1.20.1	2025-03-10T14:18:20.9222316	Registries
 d353b322f352064a75cf8c9728b62784ab37f36f data/foodspoiling/foodspoiling/food_quality/aged.json
 083577dd3502de4142309767b8b12c18b5cffa45 data/foodspoiling/foodspoiling/food_quality/fresh.json
 e01b0d74a1c4f560e4e7fc632714ad04f9fc66f8 data/foodspoiling/foodspoiling/food_quality/moldy.json
 ea7d4347a843d8125be6109cff20bb1ddae56677 data/foodspoiling/foodspoiling/food_quality/spoiled.json
 3ad236e04f4e678e0e8660208ecffc64fb4117d4 data/foodspoiling/foodspoiling/food_quality/stale.json
-d0c7c06c6bf97ba9c2d6dacf35552fc6e04eb96e data/foodspoiling/foodspoiling/food_stages/raw_meats.json
+e9e68a5cb9f7ffab3be093ed2542985dddbb8029 data/foodspoiling/foodspoiling/food_stages/default.json
+280fbfa1ae07843e325f9768b784dba5caac14e0 data/foodspoiling/foodspoiling/food_stages/raw_meats.json

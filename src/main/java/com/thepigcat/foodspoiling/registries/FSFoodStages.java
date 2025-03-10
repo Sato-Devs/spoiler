@@ -11,11 +11,17 @@ import net.minecraft.resources.ResourceKey;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 public final class FSFoodStages {
     private static final Map<ResourceKey<FoodStages>, FoodStages> SHOP_ENTRIES = new HashMap<>();
 
-    public static final ResourceKey<FoodStages> RAW_MEATS = register("raw_meats", new FoodStages(FSTags.RAW_MEATS, List.of(
+    public static final ResourceKey<FoodStages> RAW_MEATS = register("raw_meats", new FoodStages(Optional.of(FSTags.RAW_MEATS), List.of(
+            new FoodStage(FSFoodQualities.FRESH, 10),
+            new FoodStage(FSFoodQualities.STALE, 30),
+            new FoodStage(FSFoodQualities.MOLDY, 70)
+    )));
+    public static final ResourceKey<FoodStages> DEFAULT = register("default", new FoodStages(Optional.empty(), List.of(
             new FoodStage(FSFoodQualities.FRESH, 10),
             new FoodStage(FSFoodQualities.SPOILED, 20),
             new FoodStage(FSFoodQualities.STALE, 30),
