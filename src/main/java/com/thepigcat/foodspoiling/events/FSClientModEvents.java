@@ -23,12 +23,21 @@ public class FSClientModEvents {
         for (Item item : BuiltInRegistries.ITEM) {
             if (item.isEdible()) {
                 event.register((stack, layer) -> {
-                    if (NBTSpoilingUtils.hasFoodState(stack) && FoodSpoilingConfig.renderSpoiledOverlay) {
-                        Level level = Minecraft.getInstance().level;
-                        RegistryAccess lookup = level.registryAccess();
-                        FoodStage curStage = SpoilingUtils.getCurStage(stack, level.dayTime(), lookup);
-                        if (curStage != null) {
-                            return lookup.lookupOrThrow(FSRegistries.FOOD_QUALITY_KEY).getOrThrow(curStage.quality()).value().tintColor();
+                    if (NBTSpoilingUtils.hasFoodState(stack)) {
+                        if (FoodSpoilingConfig.renderFrozenOverlay) {
+                            float spoilingModifier = NBTSpoilingUtils.getSpoilingModifier(stack);
+                            if (spoilingModifier == 0) {
+                                return FoodSpoilingConfig.frozenTintColor;
+                            }
+                        }
+
+                        if (FoodSpoilingConfig.renderSpoiledOverlay) {
+                            Level level = Minecraft.getInstance().level;
+                            RegistryAccess lookup = level.registryAccess();
+                            FoodStage curStage = SpoilingUtils.getCurStage(stack, lookup);
+                            if (curStage != null) {
+                                return lookup.lookupOrThrow(FSRegistries.FOOD_QUALITY_KEY).getOrThrow(curStage.quality()).value().tintColor();
+                            }
                         }
                     }
                     return -1;

@@ -52,7 +52,7 @@ public abstract class RecipeManagerMixin extends SimpleJsonResourceReloadListene
         for (int i = 0; i < pInventory.getContainerSize(); i++) {
             ItemStack stack = pInventory.getItem(i);
             if (stack.isEdible() && !stack.is(FSTags.UNSPOILABLE_FOODS) && NBTSpoilingUtils.hasFoodState(stack)) {
-                FoodStage curStage = SpoilingUtils.getCurStage(stack, pLevel.dayTime(), pLevel.registryAccess());
+                FoodStage curStage = SpoilingUtils.getCurStage(stack, pLevel.registryAccess());
                 FoodQuality quality = pLevel.registryAccess().lookupOrThrow(FSRegistries.FOOD_QUALITY_KEY).getOrThrow(curStage.quality()).value();
                 switch (quality.usableInRecipes()) {
                     case CRAFTING -> {

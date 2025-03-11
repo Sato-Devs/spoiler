@@ -22,8 +22,11 @@ public final class NBTSpoilingUtils {
     }
 
     public static boolean hasFoodState(ItemStack stack) {
-        CompoundTag foodState = getFoodState(stack);
-        return foodState != null;
+        if (stack.hasTag()) {
+            CompoundTag foodState = getFoodState(stack);
+            return foodState != null && NBTSpoilingUtils.getFoodStages(stack) != null;
+        }
+        return false;
     }
 
     public static @Nullable CompoundTag getFoodState(ItemStack stack) {

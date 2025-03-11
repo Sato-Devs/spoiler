@@ -162,7 +162,7 @@ public final class FSEvents {
                     increaseProgress(1f, entity.level().dayTime(), stack);
 
                     FoodStages stages = SpoilingUtils.getStages(stack, lookup);
-                    FoodStage stage = SpoilingUtils.getCurStage(stack, dayTime, lookup);
+                    FoodStage stage = SpoilingUtils.getCurStage(stack, lookup);
 
                     if (stage != null && stages != null) {
                         FoodStage lastStage = stages.stages().get(stages.stages().size() - 1);
@@ -199,7 +199,7 @@ public final class FSEvents {
                     increaseProgress(1f, entity.level().dayTime(), stack);
 
                     FoodStages stages = SpoilingUtils.getStages(stack, lookup);
-                    FoodStage stage = SpoilingUtils.getCurStage(stack, dayTime, lookup);
+                    FoodStage stage = SpoilingUtils.getCurStage(stack, lookup);
 
                     if (stage != null && stages != null) {
                         FoodStage lastStage = stages.stages().get(stages.stages().size() - 1);
@@ -236,7 +236,7 @@ public final class FSEvents {
                         increaseProgress(spoilingModifier, dayTime, stack);
 
                         FoodStages stages = SpoilingUtils.getStages(stack, lookup);
-                        FoodStage stage = SpoilingUtils.getCurStage(stack, dayTime, lookup);
+                        FoodStage stage = SpoilingUtils.getCurStage(stack, lookup);
 
                         if (stage != null && stages != null) {
                             FoodStage lastStage = stages.stages().get(stages.stages().size() - 1);
@@ -270,14 +270,12 @@ public final class FSEvents {
     }
 
     private static void increaseProgress(float spoilingModifier, long dayTime, ItemStack stack) {
-        long dayTimeDiff = dayTime - NBTSpoilingUtils.getLastDayTime(stack);
+        long lastDayTime = NBTSpoilingUtils.getLastDayTime(stack);
         float progress = NBTSpoilingUtils.getSpoilingProgress(stack);
-        if (dayTimeDiff <= progress) {
-            NBTSpoilingUtils.setSpoilingProgress(stack, progress + dayTimeDiff * spoilingModifier);
-        } else {
-            NBTSpoilingUtils.setSpoilingProgress(stack, Math.max(0, dayTime - NBTSpoilingUtils.getCreationTime(stack)));
+        if (dayTime >= lastDayTime) {
+            NBTSpoilingUtils.setSpoilingProgress(stack, progress + FoodSpoilingConfig.checkInterval * spoilingModifier);
+            NBTSpoilingUtils.setLastDayTime(stack, dayTime);
         }
-        NBTSpoilingUtils.setLastDayTime(stack, dayTime);
     }
 
     private static void trySetSpoilingModifier(ItemStack stack, float spoilingModifier) {

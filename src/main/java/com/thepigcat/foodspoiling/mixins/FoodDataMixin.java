@@ -36,7 +36,7 @@ public class FoodDataMixin {
         if (NBTSpoilingUtils.hasFoodState(foodStack) && !foodStack.is(FSTags.UNSPOILABLE_FOODS) && foodStack.isEdible()) {
             FoodSpoiling.LOGGER.debug("Eatable");
             Level level = entity.level();
-            FoodStage curStage = SpoilingUtils.getCurStage(foodStack, level.dayTime(), level.registryAccess());
+            FoodStage curStage = SpoilingUtils.getCurStage(foodStack, level.registryAccess());
             Holder.Reference<FoodQuality> quality = level.registryAccess().lookupOrThrow(FSRegistries.FOOD_QUALITY_KEY).getOrThrow(curStage.quality());
             // Apply effects
             for (Pair<Either<MobEffectInstance, Potion>, Float> pair : quality.value().effects()) {

@@ -3,6 +3,7 @@ package com.thepigcat.foodspoiling;
 import com.electronwill.nightconfig.core.Config;
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.util.FastColor;
 import net.minecraftforge.common.ForgeConfigSpec;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
@@ -33,6 +34,14 @@ public final class FoodSpoilingConfig {
             .comment("Whether to apply a tint to the spoiled item")
             .define("spoiling.renderSpoiledOverlay", true);
 
+    private static final ForgeConfigSpec.BooleanValue RENDER_FROZEN_OVERLAY = BUILDER
+            .comment("Whether to apply a tint to frozen items (spoiling mod = 0)")
+            .define("spoiling.renderFrozenOverlay", true);
+
+    private static final ForgeConfigSpec.ConfigValue<List<? extends Integer>> FROZEN_TINT_COLOR = BUILDER
+            .comment("The tint color for frozen items (spoiling mod = 0)")
+            .defineList("spoiling.frozenTintColor", List.of(91, 192, 247, 217), FoodSpoilingConfig::validateRGBAInteger);
+
     private static final ForgeConfigSpec.BooleanValue BECOME_ROTTEN_MASS = BUILDER
             .comment("Whether food items should become rotten mass when fully rotten")
             .define("spoiling.becomeRottenMass", true);
@@ -62,10 +71,19 @@ public final class FoodSpoilingConfig {
     public static int checkInterval;
     public static boolean spoilEnderChest;
     public static boolean renderSpoiledOverlay;
+    public static boolean renderFrozenOverlay;
+    public static int frozenTintColor;
     public static boolean becomeRottenMass;
     public static boolean becomeDecomposedGoo;
     public static boolean showFoodTooltip;
     public static Map<ResourceLocation, Float> containerModifiers;
+
+    private static boolean validateRGBAInteger(Object o) {
+        if (o instanceof Integer i) {
+            return i >= 0 && i <= 255;
+        }
+        return false;
+    }
 
     private static boolean validateContainerModifier(final Object obj) {
         if (obj instanceof String str) {
@@ -105,6 +123,14 @@ public final class FoodSpoilingConfig {
         // Load container settings
         containerModifiers = CONTAINER_MODIFIERS.get().stream().map(FoodSpoilingConfig::strToEntry).collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
 
+        renderFrozenOverlay = RENDER_FROZEN_OVERLAY.get();
+
+        List<? extends Integer> frozenTintColor1 = FROZEN_TINT_COLOR.get();
+        if (frozenTintColor1.size() == 4) {
+            frozenTintColor = FastColor.ARGB32.color(frozenTintColor1.get(3), frozenTintColor1.get(0), frozenTintColor1.get(1), frozenTintColor1.get(2));
+        } else {
+            frozenTintColor = -1;
+        }
     }
 
     private static Map.Entry<ResourceLocation, Float> strToEntry(String s) {
