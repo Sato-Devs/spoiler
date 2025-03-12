@@ -9,6 +9,7 @@ import com.thepigcat.foodspoiling.registries.FSItems;
 import com.thepigcat.foodspoiling.utils.ClientUtils;
 import com.thepigcat.foodspoiling.utils.NBTSpoilingUtils;
 import com.thepigcat.foodspoiling.utils.SpoilingUtils;
+import it.unimi.dsi.fastutil.objects.Object2ObjectArrayMap;
 import it.unimi.dsi.fastutil.objects.ObjectArraySet;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.HolderLookup;
@@ -22,6 +23,7 @@ import net.minecraft.world.entity.decoration.ItemFrame;
 import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.LevelAccessor;
 import net.minecraft.world.level.block.entity.BlockEntity;
@@ -43,13 +45,13 @@ import net.minecraftforge.items.IItemHandler;
 import net.minecraftforge.items.wrapper.InvWrapper;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.Set;
-import java.util.UUID;
+import java.util.*;
 
 @Mod.EventBusSubscriber(modid = FoodSpoiling.MODID)
 public final class FSEvents {
     // BlockEntities that we need to tick because they are loaded
     private static final Set<BlockPos> TICKING_BLOCK_ENTITIES = new ObjectArraySet<>();
+    private static final List<Set<BlockPos>> NEW_BLOCK_ENTITIES = new ArrayList<>();
     private static final Set<UUID> TICKING_ENTITIES = new ObjectArraySet<>();
 
     @SubscribeEvent
@@ -101,6 +103,30 @@ public final class FSEvents {
 
             if (level.getGameTime() % FoodSpoilingConfig.checkInterval == 0) {
                 processFoodSpoilage(level);
+
+                for (Set<BlockPos> entry : NEW_BLOCK_ENTITIES) {
+                    for (BlockPos pos : entry) {
+                        BlockEntity blockEntity = level.getBlockEntity(pos);
+                        LazyOptional<IItemHandler> _itemHandler = blockEntity.getCapability(ForgeCapabilities.ITEM_HANDLER);
+                        if (_itemHandler.isPresent()) {
+                            IItemHandler itemHandler = _itemHandler.orElseThrow(NullPointerException::new);
+                            for (int i = 0; i < itemHandler.getSlots(); i++) {
+                                ItemStack stack = itemHandler.getStackInSlot(i);
+                                if (!stack.isEmpty()) {
+                                    if ((stack.isEdible() && !stack.is(FSTags.UNSPOILABLE_FOODS)) || stack.is(FSItems.ROTTEN_MASS.get())) {
+                                        long lastGameTime = NBTSpoilingUtils.getLastGameTime(stack);
+                                        if (lastGameTime != -1) {
+                                            NBTSpoilingUtils.setSpoilingProgress(stack, level.getGameTime() - lastGameTime);
+                                            NBTSpoilingUtils.setLastGameTime(stack, -1);
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                NEW_BLOCK_ENTITIES.clear();
             }
         }
     }
@@ -117,7 +143,7 @@ public final class FSEvents {
 
                     LazyOptional<IItemHandler> capability = blockEntity.getCapability(ForgeCapabilities.ITEM_HANDLER);
                     if (capability.isPresent()) {
-                        spoilItemsInHandler(capability.orElseThrow(NullPointerException::new), spoilingModifier, dayTime, lookup);
+                        spoilItemsInHandler(capability.orElseThrow(NullPointerException::new), spoilingModifier * getTemperatureMod(blockEntity.getLevel(), blockEntity.getBlockPos()), dayTime, lookup);
                     }
                 } else {
                     TICKING_BLOCK_ENTITIES.remove(pos);
@@ -134,7 +160,7 @@ public final class FSEvents {
 
                     LazyOptional<IItemHandler> capability = entity.getCapability(ForgeCapabilities.ITEM_HANDLER);
                     if (capability.isPresent()) {
-                        spoilItemsInHandler(capability.orElseThrow(NullPointerException::new), spoilingModifier, dayTime, lookup);
+                        spoilItemsInHandler(capability.orElseThrow(NullPointerException::new), spoilingModifier * getTemperatureMod(entity.level(), entity.getOnPos()), dayTime, lookup);
                     } else if (entity instanceof ItemFrame itemFrame) {
                         spoilItemFrame(itemFrame);
                     } else if (entity instanceof GlowItemFrame itemFrame) {
@@ -148,7 +174,7 @@ public final class FSEvents {
 
         if (FoodSpoilingConfig.spoilEnderChest) {
             for (Player player : level.players()) {
-                spoilItemsInHandler(new InvWrapper(player.getEnderChestInventory()), 0, dayTime, lookup);
+                spoilItemsInHandler(new InvWrapper(player.getEnderChestInventory()), 1, dayTime, lookup);
             }
         }
 
@@ -166,7 +192,7 @@ public final class FSEvents {
         if (!stack.isEmpty()) {
             if (stack.isEdible() && !stack.is(FSTags.UNSPOILABLE_FOODS)) {
                 if (NBTSpoilingUtils.hasFoodState(stack)) {
-                    increaseProgress(1f, entity.level().dayTime(), stack);
+                    increaseProgress(getTemperatureMod(entity.level(), entity.getOnPos()), entity.level().dayTime(), stack);
 
                     FoodStages stages = SpoilingUtils.getStages(stack, lookup);
                     FoodStage stage = SpoilingUtils.getCurStage(stack, lookup);
@@ -203,7 +229,7 @@ public final class FSEvents {
         if (!stack.isEmpty()) {
             if (stack.isEdible() && !stack.is(FSTags.UNSPOILABLE_FOODS)) {
                 if (NBTSpoilingUtils.hasFoodState(stack)) {
-                    increaseProgress(1f, entity.level().dayTime(), stack);
+                    increaseProgress(getTemperatureMod(entity.level(), entity.getOnPos()), entity.level().dayTime(), stack);
 
                     FoodStages stages = SpoilingUtils.getStages(stack, lookup);
                     FoodStage stage = SpoilingUtils.getCurStage(stack, lookup);
@@ -303,26 +329,11 @@ public final class FSEvents {
             BlockEntity blockEntity = chunk.getBlockEntity(pos);
 
             if (blockEntity != null) {
-//                if (chunk.getStatus() == ChunkStatus.FULL) {
-//                    LazyOptional<IItemHandler> _itemHandler = blockEntity.getCapability(ForgeCapabilities.ITEM_HANDLER);
-//                    if (_itemHandler.isPresent()) {
-//                        IItemHandler iItemHandler = _itemHandler.orElseThrow(NullPointerException::new);
-//                        for (int i = 0; i < iItemHandler.getSlots(); i++) {
-//                            ItemStack stack = iItemHandler.getStackInSlot(0);
-//                            if (!stack.isEmpty()) {
-//                                if ((stack.isEdible() && !stack.is(FSTags.UNSPOILABLE_FOODS)) || stack.is(FSItems.ROTTEN_MASS.get())) {
-//                                    float spoilageModifier = SpoilingUtils.getContainerSpoilageModifier(getBlockEntityId(blockEntity));
-//                                    float progress = NBTSpoilingUtils.getSpoilingProgress(stack);
-//                                    NBTSpoilingUtils.setSpoilingProgress(stack, progress + (blockEntity.getLevel().getGameTime() - NBTSpoilingUtils.getLastGameTime(stack)) * spoilageModifier);
-//                                }
-//                            }
-//                        }
-//                    }
-//                }
 
                 TICKING_BLOCK_ENTITIES.add(pos);
             }
         }
+        NEW_BLOCK_ENTITIES.add(blockEntityPositions);
     }
 
     @SubscribeEvent
@@ -376,6 +387,14 @@ public final class FSEvents {
             }
         }
 
+    }
+
+    private static float getTemperatureMod(Level level, BlockPos pos) {
+        if (SpoilingUtils.hasColdSweat()) {
+            float temperature = SpoilingUtils.getTemperature(level, pos);
+            return temperature / FoodSpoilingConfig.neutralTemperature;
+        }
+        return 1;
     }
 
     public static void registerBlockEntity(BlockPos pos) {

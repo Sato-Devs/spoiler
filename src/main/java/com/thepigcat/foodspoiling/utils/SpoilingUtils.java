@@ -8,13 +8,12 @@ import com.thepigcat.foodspoiling.FoodSpoilingConfig;
 import com.thepigcat.foodspoiling.api.FoodQuality;
 import com.thepigcat.foodspoiling.api.FoodStage;
 import com.thepigcat.foodspoiling.api.FoodStages;
+import com.thepigcat.foodspoiling.compat.ColdSweatCompat;
+import com.thepigcat.foodspoiling.compat.LSOCompat;
 import com.thepigcat.foodspoiling.registries.FSFoodStages;
 import com.thepigcat.foodspoiling.registries.FSItems;
 import net.minecraft.ChatFormatting;
-import net.minecraft.core.Holder;
-import net.minecraft.core.HolderLookup;
-import net.minecraft.core.Registry;
-import net.minecraft.core.RegistryAccess;
+import net.minecraft.core.*;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
@@ -29,6 +28,7 @@ import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.alchemy.Potion;
 import net.minecraft.world.level.Level;
+import net.minecraftforge.fml.ModList;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -82,6 +82,24 @@ public final class SpoilingUtils {
             }
         }
         return null;
+    }
+
+    public static float getTemperature(Level level, BlockPos pos) {
+        if (hasColdSweat()) {
+            return (float) ColdSweatCompat.getTempFahrenheit(ColdSweatCompat.getTemperature(level, pos));
+        }
+        if (hasLSO()) {
+            return (float) LSOCompat.getTemperature(level, pos);
+        }
+        return 1f;
+    }
+
+    public static boolean hasColdSweat() {
+        return ModList.get().isLoaded("cold_sweat");
+    }
+
+    public static boolean hasLSO() {
+        return ModList.get().isLoaded("legendarysurvivaloverhaul");
     }
 
     public static FoodStages getStages(ItemStack itemStack, HolderLookup.Provider lookup) {

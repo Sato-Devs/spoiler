@@ -128,6 +128,7 @@ dependencies {
     minecraft "net.minecraftforge:forge:${minecraft_version}-${forge_version}"
 
     implementation fg.deobf("curse.maven:cold-sweat-506194:6258866")
+    implementation fg.deobf("curse.maven:legendary-survival-overhaul-840254:6268808")
 }
 
 mixin {

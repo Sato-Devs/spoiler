@@ -50,6 +50,10 @@ public final class FoodSpoilingConfig {
             .comment("Whether food items should become decomposed goo when fully rotten")
             .define("spoiling.becomeDecomposedGoo", true);
 
+    private static final ForgeConfigSpec.DoubleValue NEUTRAL_TEMPERATURE = BUILDER
+            .comment("(Only available if cold sweat or lso is installed) The temperature that does not affect spoiling. Anything above this increases spoiling and anything below this slows it down. Temperature in Fahrenheit")
+            .defineInRange("spoiling.neutral_temperature", 71.6, 0, Integer.MAX_VALUE);
+
     // Tooltips Section
     private static final ForgeConfigSpec.BooleanValue SHOW_FOOD_TOOLTIP = BUILDER
             .comment("Shows the food quality in the tooltip")
@@ -75,6 +79,7 @@ public final class FoodSpoilingConfig {
     public static int frozenTintColor;
     public static boolean becomeRottenMass;
     public static boolean becomeDecomposedGoo;
+    public static float neutralTemperature;
     public static boolean showFoodTooltip;
     public static Map<ResourceLocation, Float> containerModifiers;
 
@@ -116,6 +121,8 @@ public final class FoodSpoilingConfig {
         renderSpoiledOverlay = RENDER_SPOILED_OVERLAY.get();
         becomeRottenMass = BECOME_ROTTEN_MASS.get();
         becomeDecomposedGoo = BECOME_DECOMPOSED_GOO.get();
+
+        neutralTemperature = NEUTRAL_TEMPERATURE.get().floatValue();
 
         // Load tooltip settings
         showFoodTooltip = SHOW_FOOD_TOOLTIP.get();
