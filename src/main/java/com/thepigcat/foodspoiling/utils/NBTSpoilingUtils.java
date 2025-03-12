@@ -56,15 +56,15 @@ public final class NBTSpoilingUtils {
         return -1;
     }
 
-    public static void setLastDayTime(ItemStack stack, long lastDayTime) {
+    public static void setLastGameTime(ItemStack stack, long lastGameTime) {
         CompoundTag foodState = getFoodState(stack);
         if (foodState != null) {
-            foodState.putLong(LAST_DAY_TIME_KEY, lastDayTime);
+            foodState.putLong(LAST_DAY_TIME_KEY, lastGameTime);
             setFoodState(stack, foodState);
         }
     }
 
-    public static long getLastDayTime(ItemStack stack) {
+    public static long getLastGameTime(ItemStack stack) {
         CompoundTag foodState = getFoodState(stack);
         if (foodState != null) {
             return foodState.getLong(LAST_DAY_TIME_KEY);

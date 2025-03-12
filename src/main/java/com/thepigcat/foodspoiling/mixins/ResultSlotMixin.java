@@ -25,8 +25,6 @@ public class ResultSlotMixin extends Slot {
         super.set(pStack);
         if (pStack.isEdible() && !pStack.isEdible() && NBTSpoilingUtils.hasFoodState(pStack)) {
             NBTSpoilingUtils.setCreationTime(pStack, player.level().dayTime());
-            NBTSpoilingUtils.setLastDayTime(pStack, player.level().dayTime());
-            FoodSpoiling.LOGGER.debug("result slot mixin");
         }
     }
 }

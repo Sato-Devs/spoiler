@@ -57,7 +57,6 @@ public final class SpoilingUtils {
         NBTSpoilingUtils.setFoodStages(stack, stages);
         NBTSpoilingUtils.setMaxSpoilingProgress(stack, getMaxProgress(stack, lookup));
         NBTSpoilingUtils.setSpoilingModifier(stack, spoilingModifier);
-        NBTSpoilingUtils.setLastDayTime(stack, dayTime);
 
     }
 

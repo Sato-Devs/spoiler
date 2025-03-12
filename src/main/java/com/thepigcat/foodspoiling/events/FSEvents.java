@@ -23,8 +23,11 @@ import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.LevelAccessor;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.chunk.ChunkAccess;
+import net.minecraft.world.level.chunk.ChunkStatus;
+import net.minecraftforge.common.capabilities.Capability;
 import net.minecraftforge.common.capabilities.ForgeCapabilities;
 import net.minecraftforge.common.util.LazyOptional;
 import net.minecraftforge.event.TickEvent;
@@ -38,6 +41,7 @@ import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.items.IItemHandler;
 import net.minecraftforge.items.wrapper.InvWrapper;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.Set;
 import java.util.UUID;
@@ -58,7 +62,6 @@ public final class FSEvents {
         ItemStack crafting = event.getCrafting();
         initFoodItem(event.getEntity(), crafting);
         NBTSpoilingUtils.setCreationTime(crafting, event.getEntity().level().dayTime());
-        NBTSpoilingUtils.setLastDayTime(crafting, event.getEntity().level().dayTime());
 
     }
 
@@ -109,7 +112,7 @@ public final class FSEvents {
             if (level.isLoaded(pos)) {
                 BlockEntity blockEntity = level.getBlockEntity(pos);
                 if (blockEntity != null && !blockEntity.isRemoved()) {
-                    ResourceLocation containerId = BuiltInRegistries.BLOCK_ENTITY_TYPE.getKey(blockEntity.getType());
+                    ResourceLocation containerId = getBlockEntityId(blockEntity);
                     float spoilingModifier = SpoilingUtils.getContainerSpoilageModifier(containerId);
 
                     LazyOptional<IItemHandler> capability = blockEntity.getCapability(ForgeCapabilities.ITEM_HANDLER);
@@ -149,6 +152,10 @@ public final class FSEvents {
             }
         }
 
+    }
+
+    private static @Nullable ResourceLocation getBlockEntityId(BlockEntity blockEntity) {
+        return BuiltInRegistries.BLOCK_ENTITY_TYPE.getKey(blockEntity.getType());
     }
 
     public static void spoilItemFrame(ItemFrame entity) {
@@ -270,11 +277,10 @@ public final class FSEvents {
     }
 
     private static void increaseProgress(float spoilingModifier, long dayTime, ItemStack stack) {
-        long lastDayTime = NBTSpoilingUtils.getLastDayTime(stack);
+        long lastDayTime = NBTSpoilingUtils.getLastGameTime(stack);
         float progress = NBTSpoilingUtils.getSpoilingProgress(stack);
         if (dayTime >= lastDayTime) {
             NBTSpoilingUtils.setSpoilingProgress(stack, progress + FoodSpoilingConfig.checkInterval * spoilingModifier);
-            NBTSpoilingUtils.setLastDayTime(stack, dayTime);
         }
     }
 
@@ -295,7 +301,25 @@ public final class FSEvents {
 
         for (BlockPos pos : blockEntityPositions) {
             BlockEntity blockEntity = chunk.getBlockEntity(pos);
+
             if (blockEntity != null) {
+//                if (chunk.getStatus() == ChunkStatus.FULL) {
+//                    LazyOptional<IItemHandler> _itemHandler = blockEntity.getCapability(ForgeCapabilities.ITEM_HANDLER);
+//                    if (_itemHandler.isPresent()) {
+//                        IItemHandler iItemHandler = _itemHandler.orElseThrow(NullPointerException::new);
+//                        for (int i = 0; i < iItemHandler.getSlots(); i++) {
+//                            ItemStack stack = iItemHandler.getStackInSlot(0);
+//                            if (!stack.isEmpty()) {
+//                                if ((stack.isEdible() && !stack.is(FSTags.UNSPOILABLE_FOODS)) || stack.is(FSItems.ROTTEN_MASS.get())) {
+//                                    float spoilageModifier = SpoilingUtils.getContainerSpoilageModifier(getBlockEntityId(blockEntity));
+//                                    float progress = NBTSpoilingUtils.getSpoilingProgress(stack);
+//                                    NBTSpoilingUtils.setSpoilingProgress(stack, progress + (blockEntity.getLevel().getGameTime() - NBTSpoilingUtils.getLastGameTime(stack)) * spoilageModifier);
+//                                }
+//                            }
+//                        }
+//                    }
+//                }
+
                 TICKING_BLOCK_ENTITIES.add(pos);
             }
         }
@@ -318,6 +342,22 @@ public final class FSEvents {
         if (event.getLevel().isClientSide()) return;
 
         for (BlockPos pos : event.getChunk().getBlockEntitiesPos()) {
+            BlockEntity blockEntity = event.getLevel().getBlockEntity(pos);
+            if (blockEntity != null) {
+                LazyOptional<IItemHandler> _itemHandler = blockEntity.getCapability(ForgeCapabilities.ITEM_HANDLER);
+                if (_itemHandler.isPresent()) {
+                    IItemHandler iItemHandler = _itemHandler.orElseThrow(NullPointerException::new);
+                    for (int i = 0; i < iItemHandler.getSlots(); i++) {
+                        ItemStack stack = iItemHandler.getStackInSlot(0);
+                        if (!stack.isEmpty()) {
+                            if ((stack.isEdible() && !stack.is(FSTags.UNSPOILABLE_FOODS)) || stack.is(FSItems.ROTTEN_MASS.get())) {
+                                NBTSpoilingUtils.setLastGameTime(stack, blockEntity.getLevel().getGameTime());
+                            }
+                        }
+                    }
+                }
+            }
+
             TICKING_BLOCK_ENTITIES.remove(pos);
         }
     }
