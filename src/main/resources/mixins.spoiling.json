@@ -1,0 +1,20 @@
+{
+  "required": true,
+  "minVersion": "0.8",
+  "package": "com.thepigcat.spoiling.mixins",
+  "compatibilityLevel": "JAVA_8",
+  "refmap": "mixins.foodspoiling.refmap.json",
+  "mixins": [
+    "EntityMixin",
+    "FoodDataMixin",
+    "ItemMixin",
+    "LevelChunkMixin",
+    "RecipeManagerMixin",
+    "ResultSlotMixin",
+    "ShapedRecipeMixin",
+    "ShapelessRecipeMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}
