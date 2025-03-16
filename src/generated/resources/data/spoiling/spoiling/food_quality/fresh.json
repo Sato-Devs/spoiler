@@ -3,6 +3,15 @@
   "nutrition_mod": 0.0,
   "recipes_usable": "crafting",
   "saturation_mod": 10.0,
-  "text_color": -7938737,
-  "tint_color": -1
+  "text_color": {
+    "a": 79,
+    "b": 221,
+    "g": 134,
+    "r": 255
+  },
+  "tint_color": {
+    "b": 255,
+    "g": 255,
+    "r": 255
+  }
 }

@@ -186,7 +186,7 @@ public final class SpoilingUtils {
                     tooltip.add(Component.literal("Frozen").withStyle(Style.EMPTY.withColor(FoodSpoilingConfig.frozenTintColor)));
                 }
                 tooltip.addAll(List.of(
-                        Component.literal("Quality: ").withStyle(ChatFormatting.GRAY).append(registryTranslation(key).copy().withStyle(Style.EMPTY.withColor(quality.value().textColor()))),
+                        Component.literal("Quality: ").withStyle(ChatFormatting.GRAY).append(registryTranslation(key).copy().withStyle(Style.EMPTY.withColor(quality.value().textColor().toARGB()))),
                         Component.literal("Freshness: ").withStyle(ChatFormatting.GRAY).append(Math.round(freshness * 100) + "%"),
                         Component.literal("Expires on: ").withStyle(ChatFormatting.GRAY).append(Component.literal(expirationDateText).withStyle(ChatFormatting.YELLOW))
                 ));
@@ -220,7 +220,7 @@ public final class SpoilingUtils {
         if (nextStage != null) {
             Holder.Reference<FoodQuality> nextQuality = access.lookupOrThrow(FSRegistries.FOOD_QUALITY_KEY).getOrThrow(nextStage.quality());
             nextStageComponent.append(Component.literal("Next Stage ")
-                    .append(Component.literal("%s".formatted(registryTranslation(nextQuality.key()).getString())).withStyle(Style.EMPTY.withColor(nextQuality.value().textColor()))));
+                    .append(Component.literal("%s".formatted(registryTranslation(nextQuality.key()).getString())).withStyle(Style.EMPTY.withColor(nextQuality.value().textColor().toARGB()))));
         } else {
             nextStageComponent.append(Component.literal("Decayed").withStyle(ChatFormatting.DARK_RED));
         }

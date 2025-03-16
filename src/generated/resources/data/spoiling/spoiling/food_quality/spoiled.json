@@ -7,6 +7,16 @@
   ],
   "nutrition_mod": 0.0,
   "saturation_mod": 10.0,
-  "text_color": -7886258,
-  "tint_color": 1331802930
+  "text_color": {
+    "a": 78,
+    "b": 170,
+    "g": 135,
+    "r": 255
+  },
+  "tint_color": {
+    "a": 50,
+    "b": 179,
+    "g": 97,
+    "r": 79
+  }
 }

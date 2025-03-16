@@ -1,8 +1,8 @@
-// 1.20.1	2025-03-16T17:53:28.207367721	Registries
-d353b322f352064a75cf8c9728b62784ab37f36f data/spoiling/spoiling/food_quality/aged.json
-083577dd3502de4142309767b8b12c18b5cffa45 data/spoiling/spoiling/food_quality/fresh.json
-e01b0d74a1c4f560e4e7fc632714ad04f9fc66f8 data/spoiling/spoiling/food_quality/moldy.json
-ea7d4347a843d8125be6109cff20bb1ddae56677 data/spoiling/spoiling/food_quality/spoiled.json
-3ad236e04f4e678e0e8660208ecffc64fb4117d4 data/spoiling/spoiling/food_quality/stale.json
+// 1.20.1	2025-03-16T19:26:14.977551974	Registries
+73cb407a1cc7209e8fd3a110456a8077efca8c50 data/spoiling/spoiling/food_quality/aged.json
+29395012981c567bcaf73122415ed1886d855963 data/spoiling/spoiling/food_quality/fresh.json
+c656efab90d2409013692d64efa4c8bf4c32d986 data/spoiling/spoiling/food_quality/moldy.json
+359e0834b49d511a6515877f824d2498132f9b79 data/spoiling/spoiling/food_quality/spoiled.json
+1e41fe165c221243774fb790382baa6d38343c73 data/spoiling/spoiling/food_quality/stale.json
 5d8d524b6382b7ef2acf7169c97432d6e4a28691 data/spoiling/spoiling/food_stages/default.json
 8de51c324bda479d921656e2f1fb4e7918436fe8 data/spoiling/spoiling/food_stages/raw_meats.json

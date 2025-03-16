@@ -36,7 +36,7 @@ public class FSClientModEvents {
                             RegistryAccess lookup = level.registryAccess();
                             FoodStage curStage = SpoilingUtils.getCurStage(stack, lookup);
                             if (curStage != null) {
-                                return lookup.lookupOrThrow(FSRegistries.FOOD_QUALITY_KEY).getOrThrow(curStage.quality()).value().tintColor();
+                                return lookup.lookupOrThrow(FSRegistries.FOOD_QUALITY_KEY).getOrThrow(curStage.quality()).value().tintColor().toARGB();
                             }
                         }
                     }
