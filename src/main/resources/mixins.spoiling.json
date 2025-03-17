@@ -3,7 +3,7 @@
   "minVersion": "0.8",
   "package": "com.thepigcat.spoiling.mixins",
   "compatibilityLevel": "JAVA_8",
-  "refmap": "mixins.foodspoiling.refmap.json",
+  "refmap": "mixins.spoiling.refmap.json",
   "mixins": [
     "EntityMixin",
     "FoodDataMixin",
