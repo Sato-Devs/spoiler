@@ -1,0 +1,24 @@
+{
+  "stages": [
+    {
+      "days": 10,
+      "quality": "spoiler:fresh"
+    },
+    {
+      "days": 20,
+      "quality": "spoiler:spoiled"
+    },
+    {
+      "days": 30,
+      "quality": "spoiler:stale"
+    },
+    {
+      "days": 40,
+      "quality": "spoiler:moldy"
+    },
+    {
+      "days": 50,
+      "quality": "spoiler:aged"
+    }
+  ]
+}

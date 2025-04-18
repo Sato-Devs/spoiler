@@ -1,0 +1,17 @@
+{
+  "items": "spoiler:raw_meats",
+  "stages": [
+    {
+      "days": 10,
+      "quality": "spoiler:fresh"
+    },
+    {
+      "days": 30,
+      "quality": "spoiler:stale"
+    },
+    {
+      "days": 70,
+      "quality": "spoiler:moldy"
+    }
+  ]
+}
