@@ -25,6 +25,7 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.chunk.ChunkAccess;
+import net.minecraft.world.level.chunk.ChunkStatus;
 import net.minecraftforge.common.capabilities.ForgeCapabilities;
 import net.minecraftforge.common.util.LazyOptional;
 import net.minecraftforge.event.TickEvent;
@@ -308,21 +309,6 @@ public final class FSEvents {
 
                 TICKING_BLOCK_ENTITIES.add(pos);
             }
-        }
-    }
-
-    @SubscribeEvent
-    public static void onChunkUnload(ChunkEvent.Unload event) {
-        if (!FoodSpoilingConfig.spoilFoods) return;
-
-        if (event.getLevel().isClientSide()) return;
-
-        for (BlockPos pos : event.getChunk().getBlockEntitiesPos()) {
-            BlockEntity blockEntity = event.getLevel().getBlockEntity(pos);
-            if (blockEntity != null) {
-                TICKING_BLOCK_ENTITIES.remove(pos);
-            }
-
         }
     }
 

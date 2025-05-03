@@ -39,8 +39,7 @@ public abstract class LevelChunkMixin extends ChunkAccess {
                     FSEvents.registerBlockEntity(pos);
                 }
             }
-        } catch (Exception e) {
-            // Log but don't crash
+        } catch (Exception ignored) {
         }
     }
 
@@ -48,11 +47,9 @@ public abstract class LevelChunkMixin extends ChunkAccess {
     private void foodspoiling$removeBlockEntity(BlockPos pos, CallbackInfo ci) {
         try {
             if (isInLevel()) {
-                // Remove from FSEvents through a public method
                 FSEvents.unregisterBlockEntity(pos);
             }
-        } catch (Exception e) {
-            // Log but don't crash
+        } catch (Exception ignored) {
         }
     }
 }
