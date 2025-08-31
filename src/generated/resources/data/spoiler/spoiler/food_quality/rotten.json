@@ -1,0 +1,26 @@
+{
+  "effects": [
+    {
+      "effect": {
+        "amplifier": 0,
+        "duration": 0,
+        "mob_effect": "minecraft:absorption"
+      },
+      "probability": 0.75
+    }
+  ],
+  "nutrition_mod": 0.0,
+  "saturation_mod": 10.0,
+  "text_color": {
+    "a": 12,
+    "b": 92,
+    "g": 112,
+    "r": 255
+  },
+  "tint_color": {
+    "a": 50,
+    "b": 179,
+    "g": 97,
+    "r": 255
+  }
+}

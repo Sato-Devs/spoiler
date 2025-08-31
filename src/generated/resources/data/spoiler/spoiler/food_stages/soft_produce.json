@@ -1,0 +1,25 @@
+{
+  "items": "spoiler:produce",
+  "stages": [
+    {
+      "days": 6,
+      "quality": "spoiler:fresh"
+    },
+    {
+      "days": 5,
+      "quality": "spoiler:bruised"
+    },
+    {
+      "days": 4,
+      "quality": "spoiler:mushy"
+    },
+     {
+      "days": 3,
+      "quality": "spoiler:moldy"
+    },
+     {
+      "days": 3,
+      "quality": "spoiler:rotten"
+    }
+  ]
+}
